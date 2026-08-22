@@ -5,6 +5,8 @@ le trajet et l'état de la connexion Wi-Fi de bord.
 
 Réécriture en Swift/AppKit de [`tgvspeed`](https://github.com/rene-d/tgvspeed) (Python/rumps).
 
+![TGVSpeed dans la barre de menus](docs/screenshot.png)
+
 ## Fonctionnement
 
 Les données proviennent du routeur de bord, joignable uniquement depuis le réseau
