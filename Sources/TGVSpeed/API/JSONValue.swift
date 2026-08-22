@@ -29,6 +29,29 @@ enum JSONValue: Decodable, Equatable {
         }
     }
 
+    subscript(key: String) -> JSONValue? {
+        guard case .object(let dictionary) = self else { return nil }
+        return dictionary[key]
+    }
+
+    var doubleValue: Double? {
+        switch self {
+        case .number(let n): n
+        case .string(let s): Double(s)
+        case .bool(let b): b ? 1 : 0
+        default: nil
+        }
+    }
+
+    var boolValue: Bool? {
+        switch self {
+        case .bool(let b): b
+        case .number(let n): n != 0
+        case .string(let s): ["true", "1", "yes", "oui"].contains(s.lowercased())
+        default: nil
+        }
+    }
+
     /// Aplatit l'arbre en couples (chemin, valeur affichable), pour un rendu en menu.
     func flattened(prefix: String = "") -> [(key: String, value: String)] {
         switch self {

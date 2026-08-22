@@ -198,6 +198,24 @@ final class Simulator: @unchecked Sendable {
         ]
     }
 
+    /// Charge utile de l'événement Socket.IO `data_consumption`, qui a son propre
+    /// schéma : `grant` et `class` là où le REST dit `active` et `service_class`,
+    /// plus l'adresse IP du client.
+    func dataConsumption() -> [String: Any] {
+        lock.lock()
+        let consumed = consumedData
+        lock.unlock()
+        return [
+            "ip": "10.116.4.121",
+            "grant": true,
+            "class": 5,
+            "granted_bandwidth": 100_000,
+            "consumed_data": Int(consumed),
+            "remaining_data": max(0, 1_024_000 - Int(consumed)),
+            "next_reset": Int(Date().addingTimeInterval(3600).timeIntervalSince1970 * 1000),
+        ]
+    }
+
     /// `quality` est une note sur 5, pas un pourcentage.
     func connectionStatistics() -> [String: Any] {
         let s = state()

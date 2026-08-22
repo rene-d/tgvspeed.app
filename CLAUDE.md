@@ -66,7 +66,13 @@ la version Python, a disparu. **Ces requêtes ne fonctionnent qu'à bord**, conn
 4. **Répercuter dans le simulateur** — `Sources/tgvsim/Simulator.swift` produit les mêmes
    documents. Un simulateur qui diverge de la réalité est pire que pas de simulateur.
 
-5. `make check` doit continuer à afficher un menu cohérent.
+5. **Vérifier le menu Wi-Fi** : `WiFiMenu.summary` lit six champs par leur nom
+   (`remaining_data`, `consumed_data`, `next_reset`, `quality`, `devices`,
+   `isBarQueueEmpty`). Si l'un d'eux est renommé, la ligne disparaît silencieusement —
+   c'est là qu'il faut répercuter. Le sous-menu *Détails techniques*, lui, s'adapte
+   tout seul puisqu'il rend le JSON tel quel.
+
+6. `make check` doit continuer à afficher un menu cohérent.
 
 ### Pièges connus, vérifiés à bord
 

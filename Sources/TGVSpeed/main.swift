@@ -19,7 +19,9 @@ if CommandLine.arguments.contains("--socket-dump") {
 
 // Mode non interactif : imprime le menu tel qu'il serait construit, puis sort.
 if CommandLine.arguments.contains("--dump-menu") {
-    MainActor.assumeIsolated { MenuDump.run() }
+    let index = CommandLine.arguments.firstIndex(of: "--dump-menu").map { $0 + 1 }
+    let seconds = index.flatMap { $0 < CommandLine.arguments.count ? Double(CommandLine.arguments[$0]) : nil }
+    MainActor.assumeIsolated { MenuDump.run(socketSeconds: seconds ?? 6) }
     exit(0)
 }
 

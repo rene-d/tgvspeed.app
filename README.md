@@ -36,7 +36,9 @@ le titre se réduit à l'icône et les entrées de menu qui dépendent du résea
 - **INOUI 8476 ▸** — les arrêts, heure réelle en tête ; les arrêts desservis sont grisés,
   les retards portent un badge et une infobulle avec le motif ; un clic ouvre la fiche de l'arrêt
 - **Carte (Google)** — la position courante dans Google Maps
-- **Wi-Fi ▸** — état de la connexion, débit, consommation, appareils connectés
+- **Wi-Fi ▸** — données restantes, remise à zéro du forfait, qualité du lien, appareils
+  connectés, file du bar ; le rendu brut des documents JSON est relégué dans un sous-menu
+  *Détails techniques*
 - **Statistiques ▸** — vitesse max et moyenne, distance parcourue, altitude, cap, arrivée estimée
 - **Affichage ▸** — contenu du titre, unité (km/h ou mph), icône monochrome, affichage du réseau
 - **Statut** — le document GPS brut, copiable

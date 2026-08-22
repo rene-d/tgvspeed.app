@@ -90,7 +90,7 @@ final class SocketServer: @unchecked Sendable {
                 "projectId": 1, "trainId": 2116, "boxId": 2, "externalId": Journey.trainId,
             ]))
             session.pending.append(event("bar_attendance", ["isBarQueueEmpty": false]))
-            session.pending.append(event("data_consumption", simulator.connectionStatus()))
+            session.pending.append(event("data_consumption", simulator.dataConsumption()))
             session.pending.append(event("trainDetails", simulator.trainDetails()))
             lock.unlock()
         }
