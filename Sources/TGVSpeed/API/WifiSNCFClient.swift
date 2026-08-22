@@ -41,6 +41,18 @@ struct WifiSNCFClient: Sendable {
 
     }
 
+    /// Racine du serveur, d'où part `/socket.io/` : l'API REST est sous `/router/api`,
+    /// le flux Socket.IO est un cran plus haut.
+    var socketRoot: URL {
+        var url = baseURL
+        while ["api", "router"].contains(url.lastPathComponent) {
+            url = url.deletingLastPathComponent()
+        }
+        return url
+    }
+
+    static let socketNamespace = "/router/api/pepita"
+
     private func url(for endpoint: Endpoint) -> URL {
         baseURL.appendingPathComponent(endpoint.rawValue)
     }

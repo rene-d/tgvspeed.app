@@ -92,10 +92,14 @@ data_consumption   {"ip":"…","grant":true,"class":5,"granted_bandwidth":100000
 - **Quatre événements sans équivalent REST** : `connected_devices`, `data_consumption`,
   `bar_attendance`, `train_number`.
 
-Coût : une implémentation Engine.IO v4 en long-polling, soit environ 150 lignes
-(handshake, boucle de lecture, PING/PONG, parsing des trames `42<namespace>,[…]`).
-Aucune bibliothèque n'est nécessaire, et `socket.io-client-swift` serait même
-à contre-emploi puisqu'elle privilégie un transport websocket ici indisponible.
+C'est ce que fait l'application : `Sources/TGVSpeed/API/EngineIOClient.swift`
+implémente Engine.IO v4 en long-polling (handshake, boucle de lecture, PING/PONG,
+parsing des trames `42<namespace>,[…]`), sans bibliothèque. `socket.io-client-swift`
+aurait été à contre-emploi ici, puisqu'elle privilégie un transport indisponible.
+
+`TrainFeed` en fait le mode nominal et bascule sur le REST après 8 secondes de silence,
+en retentant le socket avec un backoff de 2 à 30 secondes. Le simulateur `tgvsim` rejoue
+ce même flux, et son option `--no-socket` permet de vérifier le repli.
 
 ## Points de vigilance
 

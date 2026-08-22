@@ -17,8 +17,14 @@ Les données proviennent du routeur de bord, joignable uniquement depuis le rés
 | `/router/api/connection/status` | forfait de données — à l'ouverture du menu |
 | `/router/api/connection/statistics` | qualité du lien et nombre d'appareils — idem |
 
-Le portail expose aussi un flux Socket.IO qui pousse le GPS à 1 Hz et quelques
-événements sans équivalent REST. Le transport websocket y est refusé par la rame :
+Le mode nominal n'est toutefois pas le REST mais le **flux Socket.IO** du portail,
+qui pousse la position à 1 Hz et quatre événements sans équivalent REST
+(`connected_devices`, `data_consumption`, `bar_attendance`, `train_number`).
+Le REST ci-dessus sert de **repli automatique** dès que le socket reste muet plus de
+8 secondes — traversée de tunnel, perte de couverture — avec reconnexion en backoff.
+Le transport utilisé est indiqué dans le menu *Statut*.
+
+Le transport websocket est refusé par la rame malgré ce qu'annonce le handshake :
 voir [`docs/socketio.md`](docs/socketio.md).
 
 Hors du train, l'application se met en veille : le sondage passe de 2 s à 20 s,
@@ -78,6 +84,14 @@ swift run tgvsim --port 8000 --at 60 --speed 1
 
 - `--at <min>` : minute du trajet où démarrer (60 = entre Bordeaux et Angoulême, ~200 km/h)
 - `--speed <n>` : accélération du temps (`30` rejoue les 3 h 40 en 7 minutes)
+- `--no-socket` : renvoie 404 sur `/socket.io/`, pour vérifier le repli REST
+
+Le simulateur sert aussi le flux Socket.IO, aux mêmes cadences que la rame.
+Pour l'observer :
+
+```shell
+./TGVSpeed.app/Contents/MacOS/TGVSpeed --socket-dump 25
+```
 
 La variable `TGVSPEED_BASE_URL` redirige l'application vers n'importe quelle base d'API.
 

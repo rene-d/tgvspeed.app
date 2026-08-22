@@ -1,29 +1,23 @@
 import AppKit
 
-/// Pilote l'élément de barre de menus : polling des API, titre, et construction du menu.
+/// Pilote l'élément de barre de menus : titre, construction du menu, et
+/// branchement sur la source de données du train.
 @MainActor
 final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let client: WifiSNCFClient
+    private let feed: TrainFeed
     private let stats = TripStats()
     private let wifi = WiFiSSID()
     private let prefs = Preferences.shared
-
-    // Cadences : rapide à bord, lente hors du train pour ne pas réveiller le réseau
-    // toutes les deux secondes pour rien.
-    private let onlineGPSInterval: Duration = .seconds(2)
-    private let offlineGPSInterval: Duration = .seconds(20)
-    private let detailsInterval: Duration = .seconds(30)
-    /// Tant qu'on n'a pas le trajet, on réessaie vite : c'est lui qui nomme le menu.
-    private let detailsRetryInterval: Duration = .seconds(5)
 
     private var gps: GPSFix?
     private var details: TrainDetails?
     private var detailsSignature: String?
     private var lastError: String?
     private var lastRawGPS: Data?
-
-    private var tasks: [Task<Void, Never>] = []
+    /// Événements poussés par le socket sans équivalent REST, affichés dans le menu Wi-Fi.
+    private var socketEvents: [String: JSONValue] = [:]
 
     // Items conservés pour être mis à jour sans reconstruire tout le menu.
     private let menuVoyage = NSMenuItem(title: "Voyage", action: nil, keyEquivalent: "")
@@ -42,14 +36,34 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     init(client: WifiSNCFClient = WifiSNCFClient()) {
         self.client = client
+        self.feed = TrainFeed(client: client)
         super.init()
         buildMenu()
         updateTitle()
-        startPolling()
+        connectFeed()
+        feed.start()
     }
 
-    deinit {
-        tasks.forEach { $0.cancel() }
+    private func connectFeed() {
+        feed.onGPS = { [weak self] fix, raw in
+            self?.lastRawGPS = raw
+            self?.setGPS(fix, error: nil)
+        }
+        feed.onFailure = { [weak self] message in
+            self?.setGPS(nil, error: message)
+        }
+        feed.onDetails = { [weak self] details in
+            self?.setDetails(details)
+        }
+        feed.onSocketEvent = { [weak self] name, value in
+            self?.socketEvents[name] = value
+        }
+        feed.onTransportChange = { [weak self] in
+            self?.updateTitle()
+        }
+        // Si l'utilisateur a activé la détection du SSID, on évite toute requête
+        // quand on sait déjà qu'on n'est pas sur le réseau du train.
+        feed.shouldConnect = { [weak self] in self?.wifi.isOnTrainNetwork != false }
     }
 
     // MARK: - Menu
@@ -146,52 +160,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         displaySubmenu.addItem(ssid)
     }
 
-    // MARK: - Polling
-
-    private func startPolling() {
-        tasks.append(Task { [weak self] in
-            while !Task.isCancelled {
-                guard let self else { return }
-                await self.tickGPS()
-                try? await Task.sleep(for: self.isOnline ? self.onlineGPSInterval : self.offlineGPSInterval)
-            }
-        })
-
-        tasks.append(Task { [weak self] in
-            while !Task.isCancelled {
-                guard let self else { return }
-                await self.tickDetails()
-                let interval = self.details == nil ? self.detailsRetryInterval : self.detailsInterval
-                try? await Task.sleep(for: interval)
-            }
-        })
-    }
-
-    private func tickGPS() async {
-        // Si l'utilisateur a activé la détection du SSID, on évite même la requête
-        // quand on sait qu'on n'est pas sur le réseau du train.
-        if wifi.isOnTrainNetwork == false {
-            setGPS(nil, error: "Réseau Wi-Fi \(wifi.current ?? "inconnu") — hors du train")
-            return
-        }
-
-        do {
-            let (fix, raw) = try await client.gps()
-            lastRawGPS = raw
-            setGPS(fix, error: nil)
-        } catch {
-            setGPS(nil, error: error.localizedDescription)
-        }
-    }
-
-    private func tickDetails() async {
-        guard isOnline else {
-            setDetails(nil)
-            return
-        }
-        setDetails(try? await client.details())
-    }
-
     private func setGPS(_ fix: GPSFix?, error: String?) {
         lastError = error
         gps = fix
@@ -261,6 +229,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         WiFiMenu.populate(wifiSubmenu, with: WiFiSnapshot(
             ssid: wifi.current,
             ssidHint: ssidHint(),
+            socketEvents: socketEvents,
             error: isOnline ? nil : "Hors du réseau du train"
         ))
 
@@ -275,7 +244,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
                 ssid: self.wifi.current,
                 ssidHint: self.ssidHint(),
                 status: status,
-                statistics: statistics
+                statistics: statistics,
+                socketEvents: self.socketEvents
             )
             WiFiMenu.populate(self.wifiSubmenu, with: snapshot)
         }
@@ -311,12 +281,18 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             alert.informativeText = [
                 lastRawGPS.flatMap(prettyJSON) ?? "—",
                 "",
+                "source   : \(feed.transport.label)",
                 "endpoint : \(client.baseURL.absoluteString)",
             ].joined(separator: "\n")
             alert.icon = Assets.gps
         } else {
             alert.messageText = "Hors du réseau du train"
-            alert.informativeText = lastError ?? "Aucune réponse de wifi.sncf"
+            alert.informativeText = [
+                lastError ?? "Aucune réponse de wifi.sncf",
+                "",
+                "source   : \(feed.transport.label)",
+                "endpoint : \(client.baseURL.absoluteString)",
+            ].joined(separator: "\n")
             alert.icon = Assets.robotBroken
         }
         alert.addButton(withTitle: "OK")

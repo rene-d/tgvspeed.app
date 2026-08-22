@@ -6,6 +6,9 @@ struct WiFiSnapshot {
     var ssidHint: String?
     var status: JSONValue?
     var statistics: JSONValue?
+    /// Événements Socket.IO sans équivalent REST : `data_consumption`,
+    /// `connected_devices`, `bar_attendance`, `train_number`.
+    var socketEvents: [String: JSONValue] = [:]
     var error: String?
 }
 
@@ -28,6 +31,11 @@ enum WiFiMenu {
 
         section(menu, title: "Connexion", value: snapshot.status)
         section(menu, title: "Qualité", value: snapshot.statistics)
+
+        // Ce que seul le flux Socket.IO fournit.
+        for name in snapshot.socketEvents.keys.sorted() {
+            section(menu, title: sectionTitle(for: name), value: snapshot.socketEvents[name])
+        }
 
         if menu.items.count == 1 {
             menu.addItem(.separator())
@@ -66,6 +74,17 @@ enum WiFiMenu {
             item.badge = NSMenuItemBadge(string: row.value)
             item.toolTip = "\(row.key) = \(row.value)"
             menu.addItem(item)
+        }
+    }
+
+    /// Intitulés lisibles pour les événements socket connus.
+    private static func sectionTitle(for event: String) -> String {
+        switch event {
+        case "data_consumption": "Consommation"
+        case "connected_devices": "Appareils"
+        case "bar_attendance": "Bar"
+        case "train_number": "Rame"
+        default: humanize(event)
         }
     }
 

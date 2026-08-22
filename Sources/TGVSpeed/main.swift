@@ -9,6 +9,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+// Mode non interactif : écoute le flux Socket.IO et imprime ce qui arrive.
+if CommandLine.arguments.contains("--socket-dump") {
+    let index = CommandLine.arguments.firstIndex(of: "--socket-dump").map { $0 + 1 }
+    let seconds = index.flatMap { $0 < CommandLine.arguments.count ? Double(CommandLine.arguments[$0]) : nil }
+    MainActor.assumeIsolated { SocketProbe.run(seconds: seconds ?? 20) }
+    exit(0)
+}
+
 // Mode non interactif : imprime le menu tel qu'il serait construit, puis sort.
 if CommandLine.arguments.contains("--dump-menu") {
     MainActor.assumeIsolated { MenuDump.run() }
