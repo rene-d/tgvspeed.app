@@ -1,0 +1,113 @@
+{
+    "number": "6155",
+    "events": [],
+    "onboardServices": [
+        "OCEHP",
+        "OCEWO",
+        "OCEPI",
+        "OCECM",
+        "OCENY",
+        "OCEBA",
+        "OCEWF",
+        "OCEPP"
+    ],
+    "additionalServices": {},
+    "stops": [
+        {
+            "code": "FRPLY",
+            "label": "Paris - Gare de Lyon - Hall 1 & 2",
+            "services": {
+                "DRIVER": true
+            },
+            "coordinates": {
+                "latitude": 48.84494535,
+                "longitude": 2.37348139
+            },
+            "progress": {
+                "progressPercentage": 66.56739660399786,
+                "traveledDistance": 401279.56751407415,
+                "remainingDistance": 201537.40894249702
+            },
+            "theoricDate": "2026-08-22T07:18:00.000Z",
+            "realDate": "2026-08-22T07:18:00.000Z",
+            "isRemoved": false,
+            "isCreated": false,
+            "isDiversion": false,
+            "delay": 0,
+            "isDelayed": false,
+            "duration": 0
+        },
+        {
+            "code": "FRAVG",
+            "label": "Avignon TGV",
+            "services": {
+                "DRIVER": true
+            },
+            "coordinates": {
+                "latitude": 43.92194045,
+                "longitude": 4.78613645
+            },
+            "progress": {
+                "progressPercentage": 0,
+                "traveledDistance": 0,
+                "remainingDistance": 127317.25998705646
+            },
+            "theoricDate": "2026-08-22T10:00:00.000Z",
+            "realDate": "2026-08-22T10:00:00.000Z",
+            "isRemoved": false,
+            "isCreated": false,
+            "isDiversion": false,
+            "delay": 0,
+            "isDelayed": false,
+            "duration": 3
+        },
+        {
+            "code": "FRTLN",
+            "label": "Toulon",
+            "services": {
+                "DRIVER": true
+            },
+            "coordinates": {
+                "latitude": 43.12835346,
+                "longitude": 5.9294039
+            },
+            "progress": {
+                "progressPercentage": 0,
+                "traveledDistance": 0,
+                "remainingDistance": 15922.903505277996
+            },
+            "theoricDate": "2026-08-22T11:10:00.000Z",
+            "realDate": "2026-08-22T11:10:00.000Z",
+            "isRemoved": false,
+            "isCreated": false,
+            "isDiversion": false,
+            "delay": 0,
+            "isDelayed": false,
+            "duration": 14
+        },
+        {
+            "code": "FRXHE",
+            "label": "Hy\u00e8res",
+            "services": {
+                "DRIVER": true
+            },
+            "coordinates": {
+                "latitude": 43.1089022,
+                "longitude": 6.12420738
+            },
+            "theoricDate": "2026-08-22T11:40:00.000Z",
+            "realDate": "2026-08-22T11:40:00.000Z",
+            "isRemoved": false,
+            "isCreated": false,
+            "isDiversion": false,
+            "delay": 0,
+            "isDelayed": false,
+            "duration": 0
+        }
+    ],
+    "stationUicCodes": {
+        "departure": "87686006",
+        "arrival": "87755629"
+    },
+    "trainId": "260"
+}

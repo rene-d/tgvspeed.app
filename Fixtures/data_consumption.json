@@ -1,0 +1,9 @@
+{
+  "ip": "10.0.0.1",
+  "grant": true,
+  "class": 5,
+  "granted_bandwidth": 100000,
+  "consumed_data": 205242,
+  "remaining_data": 818757,
+  "next_reset": 1787389689368
+}

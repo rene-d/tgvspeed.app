@@ -1,0 +1,11 @@
+{
+  "active": true,
+  "status_code": 200,
+  "status_description": "identifier has existing grant",
+  "service_class": 5,
+  "granted_bandwidth": 100000,
+  "remaining_data": 801670,
+  "consumed_data": 222329,
+  "next_reset": 1787389689368,
+  "profileId": "AUTO-LOGIN-PROFILE-ID"
+}

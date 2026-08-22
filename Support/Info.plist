@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>TGVSpeed</string>
+	<key>CFBundleDisplayName</key>
+	<string>TGVSpeed</string>
+	<key>CFBundleExecutable</key>
+	<string>TGVSpeed</string>
+	<key>CFBundleIdentifier</key>
+	<string>fr.rene.TGVSpeed</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>MIT License</string>
+	<key>NSLocationUsageDescription</key>
+	<string>Le nom du réseau Wi-Fi (SSID) permet de détecter le réseau _SNCF_WIFI_INOUI et de l'afficher dans le menu. Cette autorisation est facultative.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Le nom du réseau Wi-Fi (SSID) permet de détecter le réseau _SNCF_WIFI_INOUI et de l'afficher dans le menu. Cette autorisation est facultative.</string>
+</dict>
+</plist>
