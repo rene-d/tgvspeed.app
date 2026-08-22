@@ -35,8 +35,9 @@ le titre se réduit à l'icône et les entrées de menu qui dépendent du résea
 ## Menu
 
 - **Voyage** — ouvre le portail SNCF
-- **INOUI 8476 ▸** — les arrêts, heure réelle en tête ; les arrêts desservis sont grisés,
-  les retards portent un badge et une infobulle avec le motif ; un clic ouvre la fiche de l'arrêt
+- **TGV INOUI 6155 ▸** — les arrêts, heure réelle en tête ; les arrêts desservis sont grisés,
+  les retards portent un badge et une infobulle avec le motif. **Cocher une gare** déclenche
+  une notification dix minutes avant l'arrivée ; ⌥ sur un arrêt ouvre sa fiche sur wifi.sncf
 - **Carte (Google)** — la position courante dans Google Maps
 - **Wi-Fi ▸** — données restantes, remise à zéro du forfait, qualité du lien, appareils
   connectés, file du bar ; le rendu brut des documents JSON est relégué dans un sous-menu
@@ -45,6 +46,20 @@ le titre se réduit à l'icône et les entrées de menu qui dépendent du résea
 - **Affichage ▸** — contenu du titre, unité (km/h ou mph), icône monochrome, affichage du réseau
 - **Statut** — le document GPS brut, copiable
 - **Aide** — le dépôt
+
+### Notification d'arrivée
+
+Une seule gare à la fois. La coche apparaît en badge sur le sous-menu du trajet, pour
+la retrouver sans l'ouvrir, et disparaît d'elle-même une fois la gare desservie ou le
+train changé.
+
+Le seuil est évalué en continu plutôt que programmé à l'avance : l'heure d'arrivée bouge
+au fil des retards publiés, et une notification planifiée serait fausse dès la minute
+suivante. C'est l'**horaire annoncé**, retard inclus, qui sert de référence — l'ETA
+calculée à partir de la vitesse ignore le freinage en approche et annoncerait sept minutes
+là où la fiche horaire en promet dix.
+
+macOS demande l'autorisation d'afficher des notifications au premier cochage.
 
 ### Réseau Wi-Fi
 

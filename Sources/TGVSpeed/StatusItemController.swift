@@ -8,6 +8,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let client: WifiSNCFClient
     private let feed: TrainFeed
     private let stats = TripStats()
+    private let alarm = ArrivalAlarm()
     private let wifi = WiFiSSID()
     private let prefs = Preferences.shared
 
@@ -60,6 +61,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
         feed.onTransportChange = { [weak self] in
             self?.updateTitle()
+        }
+        alarm.onChange = { [weak self] in
+            self?.refreshJourney()
         }
         // Si l'utilisateur a activé la détection du SSID, on évite toute requête
         // quand on sait déjà qu'on n'est pas sur le réseau du train.
@@ -119,6 +123,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menuVoyage.isEnabled = isOnline
         menuCarte.isEnabled = isOnline
         menuJourney.isEnabled = details != nil
+        // Les horaires estimés et les grisés bougent en continu : on rafraîchit
+        // à l'ouverture plutôt que d'attendre un changement de trajet.
+        refreshJourney()
         StatsMenu.populate(statsSubmenu, stats: stats, details: details)
         buildDisplayMenu()
         refreshWiFi()
@@ -164,6 +171,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         lastError = error
         gps = fix
         if let fix { stats.record(fix) }
+        alarm.evaluate(details: details, stats: stats)
         updateTitle()
     }
 
@@ -172,15 +180,32 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         detailsSignature = signature(of: new)
         details = new
 
-        if let new {
-            menuJourney.title = new.label
-            JourneyMenu.populate(journeySubmenu, with: new, stats: stats)
-        } else {
+        refreshJourney()
+        updateTitle()
+    }
+
+    /// Reconstruit le sous-menu des arrêts : coches, grisés et badges de retard.
+    private func refreshJourney() {
+        guard let details else {
             menuJourney.title = "Trajet"
+            menuJourney.badge = nil
             journeySubmenu.removeAllItems()
             journeySubmenu.addItem(JourneyMenu.disabled("En attente du trajet…"))
+            return
         }
-        updateTitle()
+
+        menuJourney.title = details.label
+        JourneyMenu.populate(journeySubmenu, with: details, stats: stats, alarm: alarm)
+
+        // Rappel de l'alarme armée, sans avoir à ouvrir le sous-menu.
+        if let stop = alarm.selectedStop(in: details) {
+            menuJourney.badge = NSMenuItemBadge(string: String(stop.label.prefix(16)))
+            menuJourney.toolTip = "Notification \(Int(ArrivalAlarm.leadTime / 60)) min avant "
+                + "l'arrivée à \(stop.label)"
+        } else {
+            menuJourney.badge = nil
+            menuJourney.toolTip = nil
+        }
     }
 
     /// La progression change en continu ; on ne reconstruit le menu que si la

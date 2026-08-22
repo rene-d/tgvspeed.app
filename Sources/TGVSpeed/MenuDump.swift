@@ -41,7 +41,7 @@ enum MenuDump {
 
             let journey = NSMenu()
             if let details {
-                JourneyMenu.populate(journey, with: details, stats: stats)
+                JourneyMenu.populate(journey, with: details, stats: stats, alarm: ArrivalAlarm())
                 print("\n\(details.label) ▸")
             } else {
                 print("\nTrajet ▸ (indisponible)")
@@ -114,8 +114,9 @@ enum MenuDump {
                 print("\(indent)---")
                 continue
             }
-            var line = indent + item.title
+            var line = indent + (item.state == .on ? "✓ " : "") + item.title
             if let badge = item.badge?.stringValue { line += "   [\(badge)]" }
+            if item.isAlternate { line += "  (⌥)" }
             if item.action == nil { line += "  (inactif)" }
             print(line)
             if let submenu = item.submenu { dump(submenu, indent: indent + "  ") }

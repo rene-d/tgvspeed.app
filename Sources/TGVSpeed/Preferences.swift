@@ -53,6 +53,7 @@ final class Preferences {
         static let unit = "speedUnit"
         static let templateIcon = "templateIcon"
         static let ssidDetection = "ssidDetection"
+        static let alarmStop = "alarmStop"
     }
 
     var display: MenuBarDisplay {
@@ -75,5 +76,24 @@ final class Preferences {
     var ssidDetection: Bool {
         get { defaults.bool(forKey: Key.ssidDetection) }
         set { defaults.set(newValue, forKey: Key.ssidDetection) }
+    }
+
+    /// Gare pour laquelle prévenir avant l'arrivée, sous la forme `train|code`.
+    /// Le numéro de train est mémorisé avec elle pour qu'une sélection oubliée
+    /// ne se réveille pas au voyage suivant.
+    var alarmStop: ArrivalAlarm.Selection? {
+        get {
+            let parts = (defaults.string(forKey: Key.alarmStop) ?? "").split(separator: "|",
+                                                                            maxSplits: 1)
+            guard parts.count == 2 else { return nil }
+            return ArrivalAlarm.Selection(train: String(parts[0]), code: String(parts[1]))
+        }
+        set {
+            guard let newValue else {
+                defaults.removeObject(forKey: Key.alarmStop)
+                return
+            }
+            defaults.set("\(newValue.train)|\(newValue.code)", forKey: Key.alarmStop)
+        }
     }
 }

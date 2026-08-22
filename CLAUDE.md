@@ -108,6 +108,32 @@ Ne pas les « corriger » sans nouvelle capture : ce sont des faits, pas des bug
 Pour tester le repli sans quitter le bureau : `tgvsim --no-socket` renvoie 404 sur
 `/socket.io/`, ce qui force l'application en REST.
 
+## Notification d'arrivée
+
+`ArrivalAlarm` prévient avant l'arrivée à la gare cochée dans le sous-menu du trajet.
+
+- **Une seule gare**, mémorisée sous la forme `train|code` dans les préférences. Le numéro
+  de train accompagne le code pour qu'une sélection oubliée ne se réveille pas au voyage
+  suivant ; elle s'efface aussi dès que la gare est desservie.
+- **Le seuil est évalué à chaque position**, pas programmé à l'avance : l'heure d'arrivée
+  bouge au fil des retards publiés. `firedCode` empêche la répétition.
+- **La référence est `stop.realDate`**, l'horaire annoncé retard inclus — pas l'ETA
+  calculée, qui ignore le freinage en approche et sous-estime la fin de tronçon.
+  Ne pas intervertir sans raison : l'écart mesuré était de trois minutes.
+
+Pour l'essayer sans attendre dix minutes :
+
+```shell
+swift run tgvsim --port 8008 --at 80          # Angoulême est à t+90, donc à 10 min
+defaults write fr.rene.TGVSpeed alarmStop "TGV INOUI 8476|FRANG"
+TGVSPEED_BASE_URL=http://localhost:8008 ./TGVSpeed.app/Contents/MacOS/TGVSpeed
+```
+
+`TGVSPEED_ALARM_LEAD` abaisse le seuil en secondes pour tester un franchissement
+(`TGVSPEED_ALARM_LEAD=30` avec `--at 89`). L'alarme trace sur la sortie standard en
+plus de poster la notification — avec un `fflush` explicite, sans quoi rien n'apparaît
+quand la sortie est redirigée et que le processus est tué.
+
 ## Changer le trajet simulé
 
 Tout est dans `Sources/tgvsim/Journey.swift` : la liste `stops`, un `SimStop` par arrêt.
