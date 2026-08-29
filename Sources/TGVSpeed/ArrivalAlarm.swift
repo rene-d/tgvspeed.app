@@ -47,8 +47,46 @@ final class ArrivalAlarm {
     /// Empêche une seconde notification pour le même arrêt.
     private var firedCode: String?
 
+    /// Marge au-delà du seuil avant de réarmer un arrêt déjà annoncé.
+    ///
+    /// Sans elle, l'ETA calculée — qui oscille d'une position à l'autre — ferait
+    /// osciller la notification avec elle autour de la limite. Deux minutes au plus,
+    /// et jamais plus de la moitié du délai : sur un délai court, une marge fixe
+    /// interdirait tout réarmement.
+    private static var rearmMargin: TimeInterval { min(120, leadTime / 2) }
+
+    /// Ce que macOS répond sur les notifications. Une alarme armée que le système
+    /// fera taire doit se voir dans le menu : `UNUserNotificationCenter.add` accepte
+    /// la demande même quand l'autorisation est refusée, et la jette en silence.
+    private(set) var authorization: UNAuthorizationStatus = .notDetermined
+
+    /// Vrai quand une alarme armée ne sonnera pas, quoi qu'il arrive.
+    var isMuted: Bool { authorization == .denied }
+
     init() {
         selection = Preferences.shared.alarmStop
+    }
+
+    /// À appeler au lancement. Demander l'autorisation seulement au moment de cocher
+    /// une gare était trop tard : macOS ne pose la question qu'une fois, et un refus
+    /// rendait toute demande ultérieure sans effet — sans que rien ne le dise.
+    func prepare() {
+        guard let center = Self.center else { return }
+        center.delegate = Self.presenter
+        center.requestAuthorization(options: [.alert, .sound]) { [weak self] _, _ in
+            self?.refreshAuthorization()
+        }
+    }
+
+    func refreshAuthorization() {
+        guard let center = Self.center else { return }
+        center.getNotificationSettings { [weak self] settings in
+            Task { @MainActor in
+                guard let self, self.authorization != settings.authorizationStatus else { return }
+                self.authorization = settings.authorizationStatus
+                self.onChange?()
+            }
+        }
     }
 
     // MARK: - Sélection
@@ -113,10 +151,18 @@ final class ArrivalAlarm {
             return
         }
 
-        guard firedCode != stop.code,
-              let arrival = Self.arrival(for: stop, in: details, stats: stats),
-              arrival.timeIntervalSinceNow <= Self.leadTime
-        else { return }
+        guard let arrival = Self.arrival(for: stop, in: details, stats: stats) else { return }
+        let remaining = arrival.timeIntervalSinceNow
+
+        // L'horaire bouge en permanence, y compris après coup : un retard annoncé
+        // repousse l'arrivée bien au-delà du seuil, et la notification déjà partie
+        // devient fausse. On réarme dès que l'arrêt ressort de la fenêtre, marge
+        // comprise, pour prévenir de nouveau au bon moment.
+        if firedCode == stop.code, remaining > Self.leadTime + Self.rearmMargin {
+            firedCode = nil
+        }
+
+        guard firedCode != stop.code, remaining <= Self.leadTime else { return }
 
         firedCode = stop.code
         notify(stop: stop, arrival: arrival)
@@ -135,8 +181,24 @@ final class ArrivalAlarm {
 
     private func requestAuthorization() {
         guard let center = Self.center else { return }
-        center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        center.requestAuthorization(options: [.alert, .sound]) { [weak self] _, _ in
+            self?.refreshAuthorization()
+        }
     }
+
+    /// Sans délégué, macOS masque la bannière quand l'application est active — et un
+    /// agent de barre de menus l'est dès que son menu est ouvert.
+    private final class Presenter: NSObject, UNUserNotificationCenterDelegate {
+        func userNotificationCenter(
+            _ center: UNUserNotificationCenter,
+            willPresent notification: UNNotification,
+            withCompletionHandler handler: @escaping (UNNotificationPresentationOptions) -> Void
+        ) {
+            handler([.banner, .sound])
+        }
+    }
+
+    private static let presenter = Presenter()
 
     private func notify(stop: Stop, arrival: Date) {
         let minutes = Int((arrival.timeIntervalSinceNow / 60).rounded())
@@ -146,7 +208,8 @@ final class ArrivalAlarm {
 
         // Trace visible dans `make demo`, où la bannière n'apparaît pas forcément.
         // Le vidage explicite est nécessaire : hors terminal, stdout est bufferisé.
-        print("alarme : \(stop.label) — \(body)")
+        print("alarme : \(stop.label) — \(body)"
+            + (isMuted ? " [muette : notifications refusées par macOS]" : ""))
         fflush(stdout)
 
         guard let center = Self.center else { return }

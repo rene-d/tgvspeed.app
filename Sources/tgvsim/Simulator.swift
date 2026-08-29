@@ -13,10 +13,37 @@ final class Simulator: @unchecked Sendable {
     private let lock = NSLock()
     private var consumedData: Double = 215_087
 
-    init(startMinutes: Double, timeScale: Double) {
+    /// Retard annoncé en cours de route, en minutes, ajouté aux arrêts pas encore
+    /// desservis. Reproduit le cas qui compte pour la notification d'arrivée :
+    /// un horaire qui recule *après* que l'alarme est partie.
+    private let lateMinutes: Int
+    /// Secondes réelles — non mises à l'échelle — avant l'annonce du retard.
+    private let lateAfter: TimeInterval
+
+    init(startMinutes: Double, timeScale: Double,
+         lateMinutes: Int = 0, lateAfter: TimeInterval = 0) {
         self.timeScale = timeScale
+        self.lateMinutes = lateMinutes
+        self.lateAfter = lateAfter
         // On recule l'heure de départ pour démarrer directement en cours de trajet.
         self.departure = Date().addingTimeInterval(-startMinutes * 60)
+    }
+
+    /// Le retard annoncé ne frappe que les arrêts encore à venir, et seulement une
+    /// fois le délai écoulé — avant, le trajet est à l'heure.
+    ///
+    /// Le critère est l'horaire, pas la position : le terminus reste « à venir »
+    /// tant que son heure d'arrivée annoncée n'est pas passée, même si la cinématique
+    /// a déjà posé le train à quai. C'est le cas qui compte — un retard annoncé en
+    /// approche, quand la notification est déjà partie.
+    private func announcedDelay(at index: Int) -> Int {
+        guard lateMinutes > 0, Date().timeIntervalSince(startedAt) >= lateAfter else { return 0 }
+        // Le retard reste annoncé jusqu'à l'heure *retardée* : mesurer contre l'heure
+        // initiale ferait revenir l'horaire en arrière une fois celle-ci dépassée.
+        let stop = Journey.stops[index]
+        let announced = stop.offsetMinutes + Double(stop.delayMinutes + lateMinutes)
+        guard announced > elapsedMinutes else { return 0 }
+        return lateMinutes
     }
 
     /// Minutes écoulées depuis le départ, dans l'échelle de temps simulée.
@@ -132,14 +159,15 @@ final class Simulator: @unchecked Sendable {
 
         var payload: [[String: Any]] = []
         for (index, stop) in stops.enumerated() {
+            let delay = stop.delayMinutes + announcedDelay(at: index)
             var entry: [String: Any] = [
                 "code": stop.code,
                 "label": stop.label,
                 "coordinates": ["latitude": stop.latitude, "longitude": stop.longitude],
                 "theoricDate": formatter.string(from: date(atMinute: stop.offsetMinutes)),
-                "realDate": formatter.string(from: date(atMinute: stop.offsetMinutes + Double(stop.delayMinutes))),
-                "isDelayed": stop.delayMinutes > 0,
-                "delay": stop.delayMinutes,
+                "realDate": formatter.string(from: date(atMinute: stop.offsetMinutes + Double(delay))),
+                "isDelayed": delay > 0,
+                "delay": delay,
                 "isRemoved": false,
                 "isCreated": false,
                 "isDiversion": false,

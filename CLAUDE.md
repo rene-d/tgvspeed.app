@@ -138,6 +138,22 @@ Pour tester le repli sans quitter le bureau : `tgvsim --no-socket` renvoie 404 s
   suivant ; elle s'efface aussi dès que la gare est desservie.
 - **Le seuil est évalué à chaque position**, pas programmé à l'avance : l'heure d'arrivée
   bouge au fil des retards publiés. `firedCode` empêche la répétition.
+- **Un horaire qui recule réarme la notification.** Un retard annoncé après coup rend
+  fausse celle qui vient de partir : dès que l'arrêt ressort de la fenêtre — `remaining >
+  leadTime + rearmMargin` — `firedCode` est effacé et l'alarme repart au nouveau seuil.
+  La marge vaut `min(120 s, délai / 2)` : fixe, elle interdirait tout réarmement sur un
+  délai court, et absente, l'ETA calculée ferait osciller la notification autour de la
+  limite.
+- **macOS peut refuser les notifications sans que rien ne le dise** :
+  `UNUserNotificationCenter.add` accepte la demande même quand l'autorisation vaut
+  `denied`, et la jette. L'application lit donc `getNotificationSettings` au lancement
+  et à chaque ouverture du menu ; `ArrivalAlarm.isMuted` déclenche un avertissement dans
+  le sous-menu du trajet et un badge ⚠︎ sur le menu principal. L'autorisation est
+  demandée au lancement, pas seulement au premier cochage : macOS ne pose la question
+  qu'une fois, et après un refus toute demande ultérieure est sans effet.
+- **Un délégué `UNUserNotificationCenterDelegate` est indispensable** : sans
+  `willPresent`, aucune bannière n'apparaît quand l'application est active — ce qu'un
+  agent de barre de menus devient dès qu'on ouvre son menu.
 - **Le délai est réglable** dans le sous-menu du trajet (*Prévenir avant l'arrivée*,
   5 à 30 min, 10 par défaut), persisté sous la clé `alarmLead` en minutes.
   `ArrivalAlarm.leadTime` reste la seule lecture du délai, en secondes.
@@ -154,7 +170,23 @@ TGVSPEED_BASE_URL=http://localhost:8008 ./TGVSpeed.app/Contents/MacOS/TGVSpeed
 ```
 
 `TGVSPEED_ALARM_LEAD` court-circuite le réglage du menu et abaisse le seuil en secondes
-pour tester un franchissement (`TGVSPEED_ALARM_LEAD=30` avec `--at 89`). L'alarme trace sur la sortie standard en
+pour tester un franchissement (`TGVSPEED_ALARM_LEAD=30` avec `--at 89`).
+
+Pour vérifier le **réarmement**, `tgvsim --late <min> --late-after <s>` annonce un retard
+en cours de route sur les arrêts pas encore desservis. Le scénario qui l'exerce en deux
+minutes, terminus à la minute 232 du trajet simulé :
+
+```shell
+swift run tgvsim --port 8337 --at 216 --speed 30 --late 60 --late-after 10
+defaults write fr.rene.TGVSpeed alarmStop "TGV INOUI 8476|FRPMO"
+TGVSPEED_BASE_URL=http://localhost:8337 TGVSPEED_ALARM_LEAD=30 \
+  ./TGVSpeed.app/Contents/MacOS/TGVSpeed
+```
+
+Deux lignes `alarme :` doivent sortir — la première vers t+2 s, la seconde après que le
+retard a repoussé l'arrivée. Le retard annoncé doit rester large : la fenêtre de
+réarmement se referme à une seconde par seconde, et l'application ne relit le trajet que
+toutes les 30 s. Un retard trop court se referme avant qu'elle l'ait vu. L'alarme trace sur la sortie standard en
 plus de poster la notification — avec un `fflush` explicite, sans quoi rien n'apparaît
 quand la sortie est redirigée et que le processus est tué.
 

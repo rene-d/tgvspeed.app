@@ -28,6 +28,15 @@ enum JourneyMenu {
 
         menu.addItem(.separator())
         menu.addItem(leadItem(alarm: alarm))
+
+        // Une alarme armée que macOS fera taire doit se voir : `add` accepte la
+        // demande même refusée, et la jette sans rien dire.
+        if alarm.isMuted {
+            let warning = disabled("⚠︎ Notifications refusées par macOS")
+            warning.toolTip = "Réglages Système → Notifications → TGVSpeed, "
+                + "puis relancer l'application."
+            menu.addItem(warning)
+        }
     }
 
     /// Réglage du délai de prévenance, au pied des arrêts : c'est là qu'on coche

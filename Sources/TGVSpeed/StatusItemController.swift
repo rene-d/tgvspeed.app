@@ -44,6 +44,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         buildMenu()
         updateTitle()
         connectFeed()
+        alarm.prepare()
         feed.start()
     }
 
@@ -125,6 +126,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menuVoyage.isEnabled = isOnline
         menuCarte.isEnabled = isOnline
         menuJourney.isEnabled = details != nil
+        // L'utilisateur a pu changer d'avis dans les Réglages Système depuis la
+        // dernière ouverture : une alarme muette doit cesser de l'être sans relance.
+        alarm.refreshAuthorization()
         // Les horaires estimés et les grisés bougent en continu : on rafraîchit
         // à l'ouverture plutôt que d'attendre un changement de trajet.
         refreshJourney()
@@ -201,9 +205,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         // Rappel de l'alarme armée, sans avoir à ouvrir le sous-menu.
         if let stop = alarm.selectedStop(in: details) {
-            menuJourney.badge = NSMenuItemBadge(string: String(stop.label.prefix(16)))
-            menuJourney.toolTip = "Notification \(Formatters.duration(ArrivalAlarm.leadTime)) "
-                + "avant l'arrivée à \(stop.label)"
+            menuJourney.badge = NSMenuItemBadge(
+                string: alarm.isMuted ? "⚠︎ " + String(stop.label.prefix(14))
+                                      : String(stop.label.prefix(16)))
+            menuJourney.toolTip = alarm.isMuted
+                ? "Notifications refusées par macOS : l'alarme sur \(stop.label) "
+                    + "ne sonnera pas. Réglages Système → Notifications → TGVSpeed."
+                : "Notification \(Formatters.duration(ArrivalAlarm.leadTime)) "
+                    + "avant l'arrivée à \(stop.label)"
         } else {
             menuJourney.badge = nil
             menuJourney.toolTip = nil

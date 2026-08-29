@@ -69,7 +69,19 @@ Le délai de prévenance se choisit sous *Prévenir avant l'arrivée*, au pied d
 du trajet : 5, 10, 15, 20, 25 ou 30 minutes. Le badge de l'entrée rappelle la valeur
 courante, dix minutes par défaut. Le changer ne rejoue pas une notification déjà partie.
 
-macOS demande l'autorisation d'afficher des notifications au premier cochage.
+**Un retard annoncé après coup réarme la notification.** Si l'arrivée recule assez pour
+que la gare ressorte de la fenêtre, celle qui vient de partir est devenue fausse : elle
+est reprogrammée et repart au nouveau seuil. Une marge — deux minutes au plus, jamais
+plus de la moitié du délai — évite qu'un horaire qui oscille autour de la limite ne fasse
+osciller la notification avec lui.
+
+L'autorisation d'afficher des notifications est demandée au lancement. Si macOS l'a
+refusée, l'application le dit plutôt que de rester muette : ⚠︎ sur le menu du trajet et
+une ligne *Notifications refusées par macOS* au pied du sous-menu. C'est nécessaire parce
+que `UNUserNotificationCenter.add` accepte la demande même après un refus, et la jette
+sans erreur — rien, côté code, ne permettait de s'en apercevoir. Le réglage se rétablit
+dans *Réglages Système → Notifications → TGVSpeed*, et le menu s'en aperçoit à sa
+prochaine ouverture.
 
 ### Détails techniques et export
 
@@ -181,6 +193,8 @@ swift run tgvsim --port 8000 --at 60 --speed 1
 - `--at <min>` : minute du trajet où démarrer (60 = entre Bordeaux et Angoulême, ~200 km/h)
 - `--speed <n>` : accélération du temps (`30` rejoue les 3 h 40 en 7 minutes)
 - `--no-socket` : renvoie 404 sur `/socket.io/`, pour vérifier le repli REST
+- `--late <min> --late-after <s>` : annonce un retard en cours de route sur les arrêts
+  pas encore desservis, pour vérifier qu'une notification déjà partie se réarme
 
 Le simulateur sert aussi le flux Socket.IO, aux mêmes cadences que la rame.
 Pour l'observer :

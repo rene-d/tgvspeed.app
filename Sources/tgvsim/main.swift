@@ -16,6 +16,10 @@ let startMinutes = argument("--at", default: 60)
 let timeScale = argument("--speed", default: 1)
 /// Permet de vérifier le repli REST de l'application en coupant le socket.
 let socketDisabled = CommandLine.arguments.contains("--no-socket")
+/// Retard annoncé en cours de route, pour vérifier qu'une notification déjà partie
+/// se réarme quand l'horaire recule.
+let lateMinutes = Int(argument("--late", default: 0))
+let lateAfter = argument("--late-after", default: 30)
 
 if CommandLine.arguments.contains("--help") {
     print("""
@@ -25,16 +29,19 @@ if CommandLine.arguments.contains("--help") {
       --at <min>    minute du trajet où démarrer (défaut 60, entre Bordeaux et Angoulême)
       --speed <n>   accélération du temps (défaut 1 ; 30 rejoue le trajet en 7 minutes)
       --no-socket   renvoie 404 sur /socket.io/, pour tester le repli REST de l'app
+      --late <min>  annonce un retard de <min> sur les arrêts pas encore desservis
+      --late-after <s>  au bout de <s> secondes réelles (défaut 30)
 
     Routes servies :
-      /train/gps  /train/details
-      /connection/status  /connection/statistics
+      /train/gps  /train/details  /train/graph
+      /connection/status  /connection/statistics  /bar/attendance
       /socket.io/  (Engine.IO v4 en long-polling, namespace /router/api/pepita)
     """)
     exit(0)
 }
 
-let simulator = Simulator(startMinutes: startMinutes, timeScale: timeScale)
+let simulator = Simulator(startMinutes: startMinutes, timeScale: timeScale,
+                          lateMinutes: lateMinutes, lateAfter: lateAfter)
 let socketServer = SocketServer(simulator: simulator)
 
 let logFormatter: DateFormatter = {
