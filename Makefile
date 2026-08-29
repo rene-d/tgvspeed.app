@@ -4,6 +4,7 @@ DMG        := TGVSpeed.dmg
 CONFIG     := release
 BUILD_DIR  := .build/$(CONFIG)
 BUNDLE     := TGVSpeed_TGVSpeed.bundle
+UNIVERSAL_DIR := .build/universal
 CODESIGN_ID ?= -
 
 .PHONY: all help build app run sim demo check clean install universal dmg
@@ -41,10 +42,21 @@ app: build
 	@echo "==> $(APP) prête"
 
 ## Binaire universel arm64 + x86_64
-universal: BUILD_DIR := .build/apple/Products/Release
+#
+# Une passe par architecture, réunies au lipo, plutôt que `swift build --arch
+# arm64 --arch x86_64` : cette forme bascule sur XCBuild, dont la génération de
+# plan échoue sur les toolchains 6.1 (« duplicate output file », SWIFT_VERSION
+# vide). Deux builds SwiftPM ordinaires donnent le même binaire partout.
 universal:
-	swift build -c release --arch arm64 --arch x86_64
-	$(MAKE) app BUILD_DIR=.build/apple/Products/Release
+	swift build -c release --triple arm64-apple-macosx14.0
+	swift build -c release --triple x86_64-apple-macosx14.0
+	rm -rf $(UNIVERSAL_DIR)
+	mkdir -p $(UNIVERSAL_DIR)
+	cp -R .build/arm64-apple-macosx/release/$(BUNDLE) $(UNIVERSAL_DIR)/
+	lipo -create -output $(UNIVERSAL_DIR)/TGVSpeed \
+		.build/arm64-apple-macosx/release/TGVSpeed \
+		.build/x86_64-apple-macosx/release/TGVSpeed
+	$(MAKE) app BUILD_DIR=$(UNIVERSAL_DIR)
 
 ## Image disque prête à distribuer (`make universal dmg` pour un binaire universel)
 dmg:
