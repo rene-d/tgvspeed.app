@@ -206,7 +206,7 @@ final class Simulator: @unchecked Sendable {
         let consumed = consumedData
         lock.unlock()
         return [
-            "ip": "10.116.4.121",
+            "ip": "10.0.0.1",
             "grant": true,
             "class": 5,
             "granted_bandwidth": 100_000,
