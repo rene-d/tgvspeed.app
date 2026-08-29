@@ -7,7 +7,7 @@ BUNDLE     := TGVSpeed_TGVSpeed.bundle
 UNIVERSAL_DIR := .build/universal
 CODESIGN_ID ?= -
 
-.PHONY: all help build app run sim demo check clean install universal dmg
+.PHONY: all help build app run sim demo check check-dist clean install universal dmg
 
 .DEFAULT_GOAL := help
 
@@ -90,6 +90,27 @@ check: app
 	  TGVSPEED_BASE_URL=http://localhost:8321 $(APP)/Contents/MacOS/TGVSpeed --dump-menu; \
 	  status=$$?; \
 	  pkill -f "tgvsim --port 8321"; \
+	  exit $$status
+
+## Vérifie que l'app empaquetée trouve ses ressources sans le répertoire de build
+#
+# `Bundle.module` retombe sur un chemin de build absolu quand il ne trouve pas le
+# bundle de ressources : sur la machine qui a compilé, une app mal empaquetée
+# fonctionne quand même. On masque donc ce filet le temps du test, sur une copie
+# de l'app, comme le vivrait quelqu'un qui la télécharge.
+check-dist: app
+	@swift build -c $(CONFIG) --product tgvsim >/dev/null
+	@dir=$$(mktemp -d); \
+	  ditto $(APP) "$$dir/$(APP)"; \
+	  $(BUILD_DIR)/tgvsim --port 8322 >/dev/null 2>&1 & \
+	  until curl -s -m 1 -o /dev/null http://localhost:8322/train/gps; do :; done; \
+	  for b in $$(find .build -name "$(BUNDLE)" -prune); do mv "$$b" "$$b.off"; done; \
+	  TGVSPEED_BASE_URL=http://localhost:8322 \
+	    "$$dir/$(APP)/Contents/MacOS/TGVSpeed" --dump-menu >/dev/null; \
+	  status=$$?; \
+	  for b in $$(find .build -name "$(BUNDLE).off" -prune); do mv "$$b" "$${b%.off}"; done; \
+	  pkill -f "tgvsim --port 8322"; rm -rf "$$dir"; \
+	  if [ $$status -eq 0 ]; then echo "==> ressources trouvées dans l'app empaquetée"; fi; \
 	  exit $$status
 
 ## Copie l'application dans /Applications

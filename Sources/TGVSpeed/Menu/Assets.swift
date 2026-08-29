@@ -3,8 +3,23 @@ import AppKit
 /// Les icônes reprises de la version Python, redimensionnées pour les menus (22×22)
 /// et la barre de menus (18 px de haut).
 enum Assets {
+    /// Le bundle de ressources produit par SwiftPM.
+    ///
+    /// `Bundle.module` le cherche à côté de l'exécutable — convention SwiftPM, fausse
+    /// pour une `.app`, où `make app` le range dans `Contents/Resources`. À défaut,
+    /// l'accesseur généré retombe sur le chemin de build absolu : l'application
+    /// fonctionne alors sur la machine qui l'a compilée et nulle part ailleurs.
+    /// On interroge donc d'abord le bundle de l'application.
+    private static let resources: Bundle = {
+        if let url = Bundle.main.url(forResource: "TGVSpeed_TGVSpeed", withExtension: "bundle"),
+           let bundle = Bundle(url: url) {
+            return bundle
+        }
+        return .module
+    }()
+
     static func image(_ name: String, size: NSSize = NSSize(width: 22, height: 22)) -> NSImage? {
-        guard let image = Bundle.module.image(forResource: name) else { return nil }
+        guard let image = resources.image(forResource: name) else { return nil }
         let copy = image.copy() as! NSImage
         copy.size = size
         return copy
