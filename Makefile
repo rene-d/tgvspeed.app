@@ -94,6 +94,9 @@ check: app
 
 ## Vérifie que l'app empaquetée trouve ses ressources sans le répertoire de build
 #
+# Réassemble $(APP) en architecture native : à jouer avant `universal`, jamais
+# après, sous peine de remplacer le binaire universel sans le dire.
+#
 # `Bundle.module` retombe sur un chemin de build absolu quand il ne trouve pas le
 # bundle de ressources : sur la machine qui a compilé, une app mal empaquetée
 # fonctionne quand même. On masque donc ce filet le temps du test, sur une copie

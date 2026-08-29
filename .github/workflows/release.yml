@@ -55,13 +55,14 @@ jobs:
       - name: Test — menu construit contre le simulateur
         run: make check
 
-      - name: Build universel
-        run: make universal
-
       # `Bundle.module` retombe sur le chemin de build quand l'app est mal
       # empaquetée : sans ce test, une app qui plante chez tout le monde passe.
+      # Avant `universal`, qui doit avoir le dernier mot sur le bundle assemblé.
       - name: Test — l'app empaquetée trouve ses ressources
         run: make check-dist
+
+      - name: Build universel
+        run: make universal
 
       - name: Vérifications du bundle
         run: |
