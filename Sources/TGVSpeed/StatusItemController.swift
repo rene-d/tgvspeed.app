@@ -19,6 +19,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var lastRawGPS: Data?
     /// Événements poussés par le socket sans équivalent REST, affichés dans le menu Wi-Fi.
     private var socketEvents: [String: JSONValue] = [:]
+    /// Dernier instantané rendu dans le menu Wi-Fi, source de l'export JSON.
+    private var wifiSnapshot = WiFiSnapshot()
 
     // Items conservés pour être mis à jour sans reconstruire tout le menu.
     private let menuVoyage = NSMenuItem(title: "Voyage", action: nil, keyEquivalent: "")
@@ -251,7 +253,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     // MARK: - Wi-Fi
 
     private func refreshWiFi() {
-        WiFiMenu.populate(wifiSubmenu, with: WiFiSnapshot(
+        show(WiFiSnapshot(
             ssid: wifi.current,
             ssidHint: ssidHint(),
             socketEvents: socketEvents,
@@ -272,8 +274,17 @@ final class StatusItemController: NSObject, NSMenuDelegate {
                 statistics: statistics,
                 socketEvents: self.socketEvents
             )
-            WiFiMenu.populate(self.wifiSubmenu, with: snapshot)
+            self.show(snapshot)
         }
+    }
+
+    /// Rend le menu Wi-Fi et retient l'instantané, que l'export réécrit tel quel.
+    private func show(_ snapshot: WiFiSnapshot) {
+        wifiSnapshot = snapshot
+        let export = NSMenuItem(title: "Exporter en JSON…",
+                                action: #selector(exportWiFiJSON), keyEquivalent: "")
+        export.target = self
+        WiFiMenu.populate(wifiSubmenu, with: snapshot, export: export)
     }
 
     private func ssidHint() -> String? {
@@ -293,6 +304,25 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             + "&q=\(gps.latitude),\(gps.longitude)&hl=fr&t=m&z=15"
         guard let url = URL(string: url) else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    /// Écrit les documents bruts — statut, qualité, événements Socket.IO — dans un
+    /// fichier, puis le montre dans le Finder.
+    ///
+    /// Pas de fenêtre d'enregistrement : elle obligerait à activer l'application,
+    /// ce qu'un agent de barre de menus ne peut pas faire sans voler le focus.
+    @objc private func exportWiFiJSON() {
+        let stamp = DateFormatter()
+        stamp.dateFormat = "yyyy-MM-dd-HHmmss"
+        let directory = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        let url = directory.appendingPathComponent("TGVSpeed-\(stamp.string(from: Date())).json")
+        do {
+            try WiFiMenu.exportData(wifiSnapshot).write(to: url)
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        } catch {
+            NSLog("TGVSpeed : export JSON impossible — \(error)")
+        }
     }
 
     @objc private func openHelp() {

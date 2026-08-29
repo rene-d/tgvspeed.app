@@ -22,7 +22,7 @@ struct WiFiSnapshot {
 /// sous-menu où il reste utile pour diagnostiquer ou encaisser un changement d'API.
 @MainActor
 enum WiFiMenu {
-    static func populate(_ menu: NSMenu, with snapshot: WiFiSnapshot) {
+    static func populate(_ menu: NSMenu, with snapshot: WiFiSnapshot, export: NSMenuItem? = nil) {
         menu.removeAllItems()
         menu.addItem(networkItem(snapshot))
 
@@ -45,11 +45,42 @@ enum WiFiMenu {
         }
 
         let technical = technicalMenu(snapshot)
+        if let export {
+            if !technical.items.isEmpty { technical.addItem(.separator()) }
+            technical.addItem(export)
+        }
         guard !technical.items.isEmpty else { return }
         menu.addItem(.separator())
         let item = NSMenuItem(title: "Détails techniques", action: nil, keyEquivalent: "")
         item.submenu = technical
         menu.addItem(item)
+    }
+
+    // MARK: - Export
+
+    /// Les documents bruts, tels que reçus, dans un seul fichier.
+    ///
+    /// Le rendu du menu est filtré (voir `excludedKeys`) ; l'export ne l'est pas.
+    /// C'est lui qui sert à décider ce qu'il faut écarter, et à joindre une trace
+    /// complète quand l'API change.
+    static func exportData(_ snapshot: WiFiSnapshot) throws -> Data {
+        struct Export: Encodable {
+            let date: String
+            let ssid: String?
+            let status: JSONValue?
+            let statistics: JSONValue?
+            let socketEvents: [String: JSONValue]
+        }
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        return try encoder.encode(Export(
+            date: ISO8601DateFormatter().string(from: Date()),
+            ssid: snapshot.ssid,
+            status: snapshot.status,
+            statistics: snapshot.statistics,
+            socketEvents: snapshot.socketEvents
+        ))
     }
 
     // MARK: - Lecture curatée
@@ -100,20 +131,55 @@ enum WiFiMenu {
 
     // MARK: - Rendu brut
 
+    /// Événements écartés en bloc du rendu brut. Mesures faites à bord du 6124.
+    ///
+    /// - `trainGraph` : le tracé de la ligne, un `LineString` de plusieurs
+    ///   centaines de points.
+    /// - `modulesConfiguration` : la configuration du portail — intentions du
+    ///   chatbot, cartes de la page d'accueil, activation des modules — soit
+    ///   851 lignes, et 229 même en écartant les champs ci-dessous. Rien n'y
+    ///   concerne la connexion. Retirer la ligne suffit à le faire revenir.
+    private static let excludedEvents: Set<String> = [
+        "trainGraph",
+        "modulesConfiguration",
+    ]
+
+    /// Champs écartés du rendu brut, où qu'ils apparaissent dans l'arbre.
+    ///
+    /// Rien d'irréversible : l'export JSON reste intégral, c'est là qu'on repère
+    /// ce qu'il faut ajouter ici. Un nom vaut pour n'importe quelle profondeur —
+    /// `translate` écarte aussi `portal.home.configuration.PRO[0].News.translate`.
+    private static let excludedKeys: Set<String> = [
+        "translate",        // clé de traduction d'un libellé, ex. CATEGORY_JOURNEY
+        "exceptMissions",   // numéros de mission où un module est inactif, 463 lignes
+        "intents",          // intentions du chatbot du portail
+        "cards",            // vignettes de la page d'accueil du portail
+        "coordinates",      // géométrie d'un tracé, un couple par point
+        "geometry",
+    ]
+
     private static func technicalMenu(_ snapshot: WiFiSnapshot) -> NSMenu {
         let menu = NSMenu()
         section(menu, title: "Connexion", value: snapshot.status)
         section(menu, title: "Qualité", value: snapshot.statistics)
-        for name in snapshot.socketEvents.keys.sorted() {
+        for name in snapshot.socketEvents.keys.sorted() where !excludedEvents.contains(name) {
             section(menu, title: sectionTitle(for: name), value: snapshot.socketEvents[name])
         }
         return menu
     }
 
+    /// Vrai si l'un des maillons du chemin est écarté : `modules[2].exceptMissions[0]`
+    /// se lit `modules`, `exceptMissions`, l'indice de tableau mis à part.
+    private static func isExcluded(_ path: String) -> Bool {
+        path.split(separator: ".").contains { component in
+            excludedKeys.contains(String(component.prefix { $0 != "[" }))
+        }
+    }
+
     /// Une section = un intitulé grisé suivi des couples clé/valeur du document JSON.
     private static func section(_ menu: NSMenu, title: String, value: JSONValue?) {
         guard let value else { return }
-        let rows = value.flattened()
+        let rows = value.flattened().filter { !isExcluded($0.key) }
         guard !rows.isEmpty else { return }
 
         if !menu.items.isEmpty { menu.addItem(.separator()) }

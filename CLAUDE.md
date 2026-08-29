@@ -75,7 +75,9 @@ la version Python, a disparu. **Ces requêtes ne fonctionnent qu'à bord**, conn
    (`remaining_data`, `consumed_data`, `next_reset`, `quality`, `devices`,
    `isBarQueueEmpty`). Si l'un d'eux est renommé, la ligne disparaît silencieusement —
    c'est là qu'il faut répercuter. Le sous-menu *Détails techniques*, lui, s'adapte
-   tout seul puisqu'il rend le JSON tel quel.
+   tout seul puisqu'il rend le JSON tel quel — moins ce qu'écartent `excludedEvents`
+   et `excludedKeys` en tête du même fichier. Un document qui apparaît vide dans le
+   menu est probablement filtré, pas absent : *Exporter en JSON…* le montre entier.
 
 6. `make check` doit continuer à afficher un menu cohérent.
 

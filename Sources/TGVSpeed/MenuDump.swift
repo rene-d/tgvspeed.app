@@ -67,7 +67,7 @@ enum MenuDump {
                 status: status,
                 statistics: statistics,
                 socketEvents: socketEvents
-            ))
+            ), export: NSMenuItem(title: "Exporter en JSON…", action: nil, keyEquivalent: ""))
             print("\nWi-Fi ▸")
             dump(wifiMenu)
             print("\n(\(count(wifiMenu)) lignes)")

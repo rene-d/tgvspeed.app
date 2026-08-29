@@ -2,7 +2,7 @@ import Foundation
 
 /// Valeur JSON quelconque : les endpoints `connection/*` ne sont pas documentés,
 /// on les décode donc sans schéma et on les rend en clé/valeur dans le menu.
-enum JSONValue: Decodable, Equatable {
+enum JSONValue: Codable, Equatable {
     case string(String)
     case number(Double)
     case bool(Bool)
@@ -26,6 +26,20 @@ enum JSONValue: Decodable, Equatable {
             self = .array(v)
         } else {
             throw DecodingError.dataCorruptedError(in: c, debugDescription: "JSON inattendu")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch self {
+        case .string(let v): try c.encode(v)
+        case .number(let v): try v == v.rounded() && abs(v) < 1e15
+            ? c.encode(Int64(v))
+            : c.encode(v)
+        case .bool(let v): try c.encode(v)
+        case .object(let v): try c.encode(v)
+        case .array(let v): try c.encode(v)
+        case .null: try c.encodeNil()
         }
     }
 

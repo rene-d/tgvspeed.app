@@ -43,7 +43,8 @@ le titre se réduit à l'icône et les entrées de menu qui dépendent du résea
 - **Carte (Google)** — la position courante dans Google Maps
 - **Wi-Fi ▸** — données restantes, remise à zéro du forfait, qualité du lien, appareils
   connectés, file du bar ; le rendu brut des documents JSON est relégué dans un sous-menu
-  *Détails techniques*
+  *Détails techniques*, d'où *Exporter en JSON…* écrit les documents complets dans
+  *Téléchargements* et les montre dans le Finder
 - **Statistiques ▸** — vitesse max et moyenne, distance parcourue, altitude, cap, arrivée estimée
 - **Affichage ▸** — contenu du titre, unité (km/h ou mph), icône monochrome, affichage du réseau
 - **Statut** — le document GPS brut, copiable
@@ -66,6 +67,19 @@ du trajet : 5, 10, 15, 20, 25 ou 30 minutes. Le badge de l'entrée rappelle la v
 courante, dix minutes par défaut. Le changer ne rejoue pas une notification déjà partie.
 
 macOS demande l'autorisation d'afficher des notifications au premier cochage.
+
+### Détails techniques et export
+
+Le sous-menu *Détails techniques* rend les documents du routeur tels quels, mais en
+écarte ce qui n'apprend rien sur la connexion : le tracé de la ligne (`trainGraph`,
+des centaines de points) et la configuration du portail (`modulesConfiguration`, 851
+lignes d'intentions de chatbot et de vignettes d'accueil). La liste est en tête de
+`Sources/TGVSpeed/Menu/WiFiMenu.swift`, `excludedEvents` et `excludedKeys`.
+
+*Exporter en JSON…*, en bas de ce sous-menu, écrit **tout** — statut, qualité et
+événements Socket.IO, filtre compris — dans un fichier horodaté. C'est ce fichier qui
+sert à décider quoi ajouter à la liste, ou à joindre une trace complète quand l'API
+change.
 
 ### Réseau Wi-Fi
 
