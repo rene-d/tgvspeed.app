@@ -76,7 +76,8 @@ et l'application fonctionne entièrement sans.
 ## Compilation
 
 ```shell
-make            # produit TGVSpeed.app
+make            # liste les cibles disponibles
+make app        # produit TGVSpeed.app
 make install    # copie dans /Applications
 make universal  # binaire arm64 + x86_64
 ```

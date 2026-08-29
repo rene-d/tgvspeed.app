@@ -5,10 +5,23 @@ BUILD_DIR  := .build/$(CONFIG)
 BUNDLE     := TGVSpeed_TGVSpeed.bundle
 CODESIGN_ID ?= -
 
-.PHONY: all build app run sim demo check clean install universal
+.PHONY: all help build app run sim demo check clean install universal
 
+.DEFAULT_GOAL := help
+
+## Construit TGVSpeed.app (identique à `make app`)
 all: app
 
+## Liste les cibles disponibles
+help:
+	@awk 'BEGIN { FS = ":" } \
+	  /^## / { doc = substr($$0, 4); next } \
+	  /^[a-zA-Z][a-zA-Z0-9_-]*:/ { \
+	    if (doc != "") { printf "  \033[1m%-10s\033[0m %s\n", $$1, doc; doc = "" } \
+	    next } \
+	  { doc = "" }' $(MAKEFILE_LIST)
+
+## Compile le paquet SwiftPM
 build:
 	swift build -c $(CONFIG)
 
@@ -32,6 +45,7 @@ universal:
 	swift build -c release --arch arm64 --arch x86_64
 	$(MAKE) app BUILD_DIR=.build/apple/Products/Release
 
+## Construit puis ouvre l'application
 run: app
 	open $(APP)
 
@@ -53,10 +67,12 @@ check: app
 	  pkill -f "tgvsim --port 8321"; \
 	  exit $$status
 
+## Copie l'application dans /Applications
 install: app
 	rm -rf /Applications/$(APP)
 	cp -R $(APP) /Applications/
 	@echo "==> installée dans /Applications"
 
+## Supprime .build et l'app assemblée
 clean:
 	rm -rf .build $(APP)

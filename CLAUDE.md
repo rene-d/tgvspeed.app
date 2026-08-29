@@ -19,7 +19,8 @@ Réécriture native de `rene-d/tgvspeed` (Python/rumps).
 ## Commandes
 
 ```shell
-make                  # construit TGVSpeed.app
+make                  # liste les cibles disponibles
+make app              # construit TGVSpeed.app
 make sim              # simulateur sur http://localhost:8000
 make demo             # lance l'app branchée sur le simulateur
 make check            # imprime le menu construit, sans interface — le test de référence
