@@ -73,6 +73,29 @@ L'option *Afficher le réseau Wi-Fi* lit le SSID courant. macOS exige pour cela
 l'autorisation **Localisation** : elle n'est demandée qu'à l'activation de l'option,
 et l'application fonctionne entièrement sans.
 
+## Installation
+
+Télécharger l'image disque de la [dernière release][releases], l'ouvrir, glisser
+**TGVSpeed** dans *Applications*, puis lever la mise en quarantaine :
+
+```shell
+xattr -dr com.apple.quarantine /Applications/TGVSpeed.app
+```
+
+L'application est signée en *ad hoc* et n'est pas notarisée — faute de compte Apple
+Developer, non par négligence. Sans cette commande, macOS refuse de l'ouvrir en
+annonçant qu'elle « n'a pas pu être vérifiée ». Un ⌃-clic sur l'application puis
+*Ouvrir* aboutit au même résultat, en deux clics de plus.
+
+L'image contient un binaire universel arm64 + x86_64 ; macOS 14 minimum.
+Le fichier `.sha256` joint à la release permet de vérifier le téléchargement :
+
+```shell
+shasum -a 256 -c TGVSpeed-1.0.0.dmg.sha256
+```
+
+[releases]: https://github.com/rene-d/tgvspeed.app/releases/latest
+
 ## Compilation
 
 ```shell
@@ -90,6 +113,11 @@ La signature est *ad hoc* par défaut ; pour une vraie identité :
 ```shell
 make app CODESIGN_ID="Developer ID Application: …"
 ```
+
+`make dmg` produit l'image disque distribuée ; `make universal dmg` la construit à
+partir du binaire universel. C'est ce qu'exécute le workflow `.github/workflows/release.yml`,
+déclenché par un tag `v*` : il joue `make check` contre le simulateur, construit,
+vérifie les deux architectures et la signature, puis publie la release.
 
 ## Développement hors du train
 

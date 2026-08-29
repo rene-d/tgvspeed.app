@@ -3,3 +3,5 @@
 *.xcodeproj
 TGVSpeed.app/
 .DS_Store
+TGVSpeed.dmg
+TGVSpeed-*.dmg

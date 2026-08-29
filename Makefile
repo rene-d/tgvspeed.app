@@ -1,11 +1,12 @@
 # TGVSpeed — build d'une app AppKit sans Xcode
 APP        := TGVSpeed.app
+DMG        := TGVSpeed.dmg
 CONFIG     := release
 BUILD_DIR  := .build/$(CONFIG)
 BUNDLE     := TGVSpeed_TGVSpeed.bundle
 CODESIGN_ID ?= -
 
-.PHONY: all help build app run sim demo check clean install universal
+.PHONY: all help build app run sim demo check clean install universal dmg
 
 .DEFAULT_GOAL := help
 
@@ -45,6 +46,18 @@ universal:
 	swift build -c release --arch arm64 --arch x86_64
 	$(MAKE) app BUILD_DIR=.build/apple/Products/Release
 
+## Image disque prête à distribuer (`make universal dmg` pour un binaire universel)
+dmg:
+	@test -d $(APP) || $(MAKE) app
+	rm -rf $(DMG) .build/dmg
+	mkdir -p .build/dmg
+	cp -R $(APP) .build/dmg/
+	ln -s /Applications .build/dmg/Applications
+	hdiutil create -volname TGVSpeed -srcfolder .build/dmg \
+		-ov -format UDZO -quiet $(DMG)
+	rm -rf .build/dmg
+	@echo "==> $(DMG) prête"
+
 ## Construit puis ouvre l'application
 run: app
 	open $(APP)
@@ -75,4 +88,4 @@ install: app
 
 ## Supprime .build et l'app assemblée
 clean:
-	rm -rf .build $(APP)
+	rm -rf .build $(APP) $(DMG)
