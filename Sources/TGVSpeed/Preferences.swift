@@ -54,6 +54,7 @@ final class Preferences {
         static let templateIcon = "templateIcon"
         static let ssidDetection = "ssidDetection"
         static let alarmStop = "alarmStop"
+        static let alarmLead = "alarmLead"
     }
 
     var display: MenuBarDisplay {
@@ -95,5 +96,15 @@ final class Preferences {
             }
             defaults.set("\(newValue.train)|\(newValue.code)", forKey: Key.alarmStop)
         }
+    }
+
+    /// Délai de prévenance avant l'arrivée, en minutes. Une valeur absente ou
+    /// hors des choix du menu retombe sur les dix minutes d'origine.
+    var alarmLead: Int {
+        get {
+            let stored = defaults.integer(forKey: Key.alarmLead)
+            return ArrivalAlarm.leadChoices.contains(stored) ? stored : 10
+        }
+        set { defaults.set(newValue, forKey: Key.alarmLead) }
     }
 }

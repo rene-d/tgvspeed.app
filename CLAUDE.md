@@ -117,6 +117,9 @@ Pour tester le repli sans quitter le bureau : `tgvsim --no-socket` renvoie 404 s
   suivant ; elle s'efface aussi dès que la gare est desservie.
 - **Le seuil est évalué à chaque position**, pas programmé à l'avance : l'heure d'arrivée
   bouge au fil des retards publiés. `firedCode` empêche la répétition.
+- **Le délai est réglable** dans le sous-menu du trajet (*Prévenir avant l'arrivée*,
+  5 à 30 min, 10 par défaut), persisté sous la clé `alarmLead` en minutes.
+  `ArrivalAlarm.leadTime` reste la seule lecture du délai, en secondes.
 - **La référence est `stop.realDate`**, l'horaire annoncé retard inclus — pas l'ETA
   calculée, qui ignore le freinage en approche et sous-estime la fin de tronçon.
   Ne pas intervertir sans raison : l'écart mesuré était de trois minutes.
@@ -129,8 +132,8 @@ defaults write fr.rene.TGVSpeed alarmStop "TGV INOUI 8476|FRANG"
 TGVSPEED_BASE_URL=http://localhost:8008 ./TGVSpeed.app/Contents/MacOS/TGVSpeed
 ```
 
-`TGVSPEED_ALARM_LEAD` abaisse le seuil en secondes pour tester un franchissement
-(`TGVSPEED_ALARM_LEAD=30` avec `--at 89`). L'alarme trace sur la sortie standard en
+`TGVSPEED_ALARM_LEAD` court-circuite le réglage du menu et abaisse le seuil en secondes
+pour tester un franchissement (`TGVSPEED_ALARM_LEAD=30` avec `--at 89`). L'alarme trace sur la sortie standard en
 plus de poster la notification — avec un `fflush` explicite, sans quoi rien n'apparaît
 quand la sortie est redirigée et que le processus est tué.
 

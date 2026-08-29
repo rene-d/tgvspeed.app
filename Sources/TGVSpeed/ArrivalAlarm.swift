@@ -22,10 +22,18 @@ extension TrainDetails {
 /// notification programmée à l'avance serait fausse dès la minute suivante.
 @MainActor
 final class ArrivalAlarm {
-    /// Délai de prévenance. `TGVSPEED_ALARM_LEAD` l'abaisse pour les essais.
-    static let leadTime: TimeInterval = ProcessInfo.processInfo
-        .environment["TGVSPEED_ALARM_LEAD"]
-        .flatMap(TimeInterval.init) ?? 600
+    /// Délais proposés dans le menu, en minutes.
+    static let leadChoices = [5, 10, 15, 20, 25, 30]
+
+    /// Délai de prévenance, en secondes. `TGVSPEED_ALARM_LEAD` court-circuite le
+    /// réglage pour les essais : il s'exprime en secondes, pas en minutes.
+    static var leadTime: TimeInterval {
+        if let forced = ProcessInfo.processInfo.environment["TGVSPEED_ALARM_LEAD"]
+            .flatMap(TimeInterval.init) {
+            return forced
+        }
+        return TimeInterval(Preferences.shared.alarmLead * 60)
+    }
 
     struct Selection: Equatable {
         let train: String
@@ -59,6 +67,17 @@ final class ArrivalAlarm {
         } else {
             set(Selection(train: details.label, code: code))
             requestAuthorization()
+        }
+    }
+
+    /// Délai choisi, en minutes. Le changer ne réarme pas une alarme déjà partie :
+    /// l'arrêt a été annoncé, le répéter n'apprendrait rien.
+    var leadMinutes: Int {
+        get { Preferences.shared.alarmLead }
+        set {
+            guard newValue != leadMinutes else { return }
+            Preferences.shared.alarmLead = newValue
+            onChange?()
         }
     }
 

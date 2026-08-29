@@ -37,7 +37,9 @@ le titre se réduit à l'icône et les entrées de menu qui dépendent du résea
 - **Voyage** — ouvre le portail SNCF
 - **TGV INOUI 6155 ▸** — les arrêts, heure réelle en tête ; les arrêts desservis sont grisés,
   les retards portent un badge et une infobulle avec le motif. **Cocher une gare** déclenche
-  une notification dix minutes avant l'arrivée ; ⌥ sur un arrêt ouvre sa fiche sur wifi.sncf
+  une notification avant l'arrivée — le délai se règle en pied de sous-menu,
+  *Prévenir avant l'arrivée* (5 à 30 min, dix par défaut) ; ⌥ sur un arrêt ouvre sa fiche
+  sur wifi.sncf
 - **Carte (Google)** — la position courante dans Google Maps
 - **Wi-Fi ▸** — données restantes, remise à zéro du forfait, qualité du lien, appareils
   connectés, file du bar ; le rendu brut des documents JSON est relégué dans un sous-menu
@@ -58,6 +60,10 @@ au fil des retards publiés, et une notification planifiée serait fausse dès l
 suivante. C'est l'**horaire annoncé**, retard inclus, qui sert de référence — l'ETA
 calculée à partir de la vitesse ignore le freinage en approche et annoncerait sept minutes
 là où la fiche horaire en promet dix.
+
+Le délai de prévenance se choisit sous *Prévenir avant l'arrivée*, au pied du sous-menu
+du trajet : 5, 10, 15, 20, 25 ou 30 minutes. Le badge de l'entrée rappelle la valeur
+courante, dix minutes par défaut. Le changer ne rejoue pas une notification déjà partie.
 
 macOS demande l'autorisation d'afficher des notifications au premier cochage.
 

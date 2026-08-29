@@ -10,22 +10,45 @@ enum JourneyMenu {
         Handler.shared.details = details
         Handler.shared.alarm = alarm
 
-        guard !details.stops.isEmpty else {
+        if details.stops.isEmpty {
             menu.addItem(disabled("Aucun arrêt annoncé"))
-            return
-        }
-
-        let next = details.nextStop
-        for stop in details.stops {
-            // Seul le prochain arrêt a une distance restante exploitable ; elle est
-            // portée par l'arrêt précédent, d'où le passage par `details`.
-            let remaining = stop.code == next?.code ? details.remainingDistanceToNextStop : nil
-            menu.addItem(item(for: stop, remaining: remaining, stats: stats,
-                              details: details, alarm: alarm))
-            if let alternate = alternate(for: stop) {
-                menu.addItem(alternate)
+        } else {
+            let next = details.nextStop
+            for stop in details.stops {
+                // Seul le prochain arrêt a une distance restante exploitable ; elle est
+                // portée par l'arrêt précédent, d'où le passage par `details`.
+                let remaining = stop.code == next?.code ? details.remainingDistanceToNextStop : nil
+                menu.addItem(item(for: stop, remaining: remaining, stats: stats,
+                                  details: details, alarm: alarm))
+                if let alternate = alternate(for: stop) {
+                    menu.addItem(alternate)
+                }
             }
         }
+
+        menu.addItem(.separator())
+        menu.addItem(leadItem(alarm: alarm))
+    }
+
+    /// Réglage du délai de prévenance, au pied des arrêts : c'est là qu'on coche
+    /// la gare, c'est là qu'on veut changer d'avis sur l'avance.
+    private static func leadItem(alarm: ArrivalAlarm) -> NSMenuItem {
+        let item = NSMenuItem(title: "Prévenir avant l'arrivée", action: nil, keyEquivalent: "")
+        // Le délai effectif, qui peut venir de TGVSPEED_ALARM_LEAD lors d'un essai.
+        item.badge = NSMenuItemBadge(string: Formatters.duration(ArrivalAlarm.leadTime))
+
+        let submenu = NSMenu()
+        submenu.autoenablesItems = false
+        for minutes in ArrivalAlarm.leadChoices {
+            let choice = NSMenuItem(title: "\(minutes) min",
+                                    action: #selector(Handler.setLead(_:)), keyEquivalent: "")
+            choice.target = Handler.shared
+            choice.representedObject = minutes
+            choice.state = alarm.leadMinutes == minutes ? .on : .off
+            submenu.addItem(choice)
+        }
+        item.submenu = submenu
+        return item
     }
 
     private static func item(for stop: Stop, remaining: Double?, stats: TripStats,
@@ -43,7 +66,7 @@ enum JourneyMenu {
             item.target = Handler.shared
             item.action = #selector(Handler.toggleAlarm(_:))
             item.state = alarm.isSelected(stop, in: details) ? .on : .off
-            hints.append("Cocher pour être prévenu \(Int(ArrivalAlarm.leadTime / 60)) min avant l'arrivée")
+            hints.append("Cocher pour être prévenu \(Formatters.duration(ArrivalAlarm.leadTime)) avant l'arrivée")
             hints.append("⌥ pour ouvrir la fiche de l'arrêt")
         }
 
@@ -94,6 +117,11 @@ enum JourneyMenu {
             guard let code = sender.representedObject as? String,
                   let url = URL(string: "https://wifi.sncf/fr/stops/\(code)") else { return }
             NSWorkspace.shared.open(url)
+        }
+
+        @objc func setLead(_ sender: NSMenuItem) {
+            guard let minutes = sender.representedObject as? Int else { return }
+            alarm?.leadMinutes = minutes
         }
 
         @objc func toggleAlarm(_ sender: NSMenuItem) {

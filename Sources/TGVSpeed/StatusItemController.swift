@@ -200,8 +200,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         // Rappel de l'alarme armée, sans avoir à ouvrir le sous-menu.
         if let stop = alarm.selectedStop(in: details) {
             menuJourney.badge = NSMenuItemBadge(string: String(stop.label.prefix(16)))
-            menuJourney.toolTip = "Notification \(Int(ArrivalAlarm.leadTime / 60)) min avant "
-                + "l'arrivée à \(stop.label)"
+            menuJourney.toolTip = "Notification \(Formatters.duration(ArrivalAlarm.leadTime)) "
+                + "avant l'arrivée à \(stop.label)"
         } else {
             menuJourney.badge = nil
             menuJourney.toolTip = nil
