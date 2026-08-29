@@ -217,6 +217,32 @@ final class Simulator: @unchecked Sendable {
     }
 
     /// `quality` est une note sur 5, pas un pourcentage.
+    /// Le tracé de la ligne, comme `/train/graph` à bord : un `LineString` GeoJSON.
+    /// La rame en renvoie plusieurs milliers de points ; on interpole entre les arrêts,
+    /// ce qui suffit à obtenir un document de même forme.
+    func trainGraph() -> [String: Any] {
+        var points: [[Double]] = []
+        for (index, stop) in Journey.stops.enumerated() {
+            points.append([stop.longitude, stop.latitude])
+            guard index + 1 < Journey.stops.count else { continue }
+            let next = Journey.stops[index + 1]
+            for step in 1..<20 {
+                let t = Double(step) / 20
+                points.append([
+                    stop.longitude + (next.longitude - stop.longitude) * t,
+                    stop.latitude + (next.latitude - stop.latitude) * t,
+                ])
+            }
+        }
+        return ["type": "LineString", "coordinates": points]
+    }
+
+    /// `bar_attendance` a bien un équivalent REST, contrairement à `data_consumption`
+    /// et `connected_devices`. Même charge utile que l'événement socket.
+    func barAttendance() -> [String: Any] {
+        ["isBarQueueEmpty": Int(Date().timeIntervalSince(startedAt)) % 120 < 60]
+    }
+
     func connectionStatistics() -> [String: Any] {
         let s = state()
         return [

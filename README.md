@@ -18,10 +18,13 @@ Les données proviennent du routeur de bord, joignable uniquement depuis le rés
 | `/router/api/train/details` | trajet et arrêts — toutes les 30 s |
 | `/router/api/connection/status` | forfait de données — à l'ouverture du menu |
 | `/router/api/connection/statistics` | qualité du lien et nombre d'appareils — idem |
+| `/router/api/train/graph` | tracé de la ligne, un `LineString` de plusieurs milliers de points — export seul |
+| `/router/api/bar/attendance` | file du bar — export seul |
 
 Le mode nominal n'est toutefois pas le REST mais le **flux Socket.IO** du portail,
-qui pousse la position à 1 Hz et quatre événements sans équivalent REST
-(`connected_devices`, `data_consumption`, `bar_attendance`, `train_number`).
+qui pousse la position à 1 Hz et trois événements sans équivalent REST
+(`connected_devices`, `data_consumption`, `train_number`). Un quatrième,
+`bar_attendance`, est aussi servi en REST par `/router/api/bar/attendance`.
 Le REST ci-dessus sert de **repli automatique** dès que le socket reste muet plus de
 8 secondes — traversée de tunnel, perte de couverture — avec reconnexion en backoff.
 Le transport utilisé est indiqué dans le menu *Statut*.
@@ -76,10 +79,35 @@ des centaines de points) et la configuration du portail (`modulesConfiguration`,
 lignes d'intentions de chatbot et de vignettes d'accueil). La liste est en tête de
 `Sources/TGVSpeed/Menu/WiFiMenu.swift`, `excludedEvents` et `excludedKeys`.
 
-*Exporter en JSON…*, en bas de ce sous-menu, écrit **tout** — statut, qualité et
-événements Socket.IO, filtre compris — dans un fichier horodaté. C'est ce fichier qui
-sert à décider quoi ajouter à la liste, ou à joindre une trace complète quand l'API
-change.
+*Exporter en JSON…*, en bas de ce sous-menu, écrit un fichier horodaté dans
+*Téléchargements* et l'ouvre dans le Finder. Il contient, sans filtre :
+
+- **la mémoire de l'application** — version, système, base d'API, transport courant,
+  statistiques du trajet, dernière position connue ;
+- **six endpoints REST** relus au moment du clic, `train/graph` compris, chacun avec
+  son erreur s'il n'a pas répondu ;
+- **les événements Socket.IO** reçus, y compris ceux que le menu écarte ;
+- **les empreintes de version** — handshake Engine.IO, hachages des bundles du portail
+  et leur date — pour dater l'export contre une version du portail (voir plus bas).
+
+⌥ sur l'entrée y ajoute les contenus du portail : libellés, catalogue vidéo, salons de
+chat. Environ 240 Ko dans le cas courant, dominés par le tracé de la ligne.
+
+Le même document s'obtient sans interface, ce qui le rend vérifiable :
+
+```shell
+./TGVSpeed.app/Contents/MacOS/TGVSpeed --export trace.json        # ou sans chemin, sur stdout
+./TGVSpeed.app/Contents/MacOS/TGVSpeed --export trace.json --full # avec le portail
+```
+
+L'export ne lit que des routes sans effet de bord. Le portail en expose d'autres —
+`connection/logout`, `connection/activate/*`, `connection/modify`, les jetons — qui
+**écrivent** : `logout` coupe la session Wi-Fi. Elles sont volontairement absentes de
+`WifiSNCFClient.Endpoint`.
+
+Une réserve avant de joindre un export à un rapport : l'événement `data_consumption`
+contient l'adresse IP que la rame a attribuée à la machine. L'anonymiser, comme les
+fixtures du dépôt.
 
 ### Réseau Wi-Fi
 

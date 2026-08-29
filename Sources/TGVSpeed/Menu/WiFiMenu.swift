@@ -22,7 +22,7 @@ struct WiFiSnapshot {
 /// sous-menu où il reste utile pour diagnostiquer ou encaisser un changement d'API.
 @MainActor
 enum WiFiMenu {
-    static func populate(_ menu: NSMenu, with snapshot: WiFiSnapshot, export: NSMenuItem? = nil) {
+    static func populate(_ menu: NSMenu, with snapshot: WiFiSnapshot, export: [NSMenuItem] = []) {
         menu.removeAllItems()
         menu.addItem(networkItem(snapshot))
 
@@ -45,9 +45,9 @@ enum WiFiMenu {
         }
 
         let technical = technicalMenu(snapshot)
-        if let export {
+        if !export.isEmpty {
             if !technical.items.isEmpty { technical.addItem(.separator()) }
-            technical.addItem(export)
+            export.forEach(technical.addItem)
         }
         guard !technical.items.isEmpty else { return }
         menu.addItem(.separator())
@@ -58,29 +58,20 @@ enum WiFiMenu {
 
     // MARK: - Export
 
-    /// Les documents bruts, tels que reçus, dans un seul fichier.
+    /// L'entrée d'export et sa variante ⌥, qui ajoute les contenus du portail.
     ///
-    /// Le rendu du menu est filtré (voir `excludedKeys`) ; l'export ne l'est pas.
-    /// C'est lui qui sert à décider ce qu'il faut écarter, et à joindre une trace
-    /// complète quand l'API change.
-    static func exportData(_ snapshot: WiFiSnapshot) throws -> Data {
-        struct Export: Encodable {
-            let date: String
-            let ssid: String?
-            let status: JSONValue?
-            let statistics: JSONValue?
-            let socketEvents: [String: JSONValue]
-        }
+    /// Le document lui-même est assemblé par `DiagnosticExport` : le menu n'en
+    /// connaît que le déclencheur.
+    static func exportItems(target: AnyObject?, action: Selector?) -> [NSMenuItem] {
+        let normal = NSMenuItem(title: "Exporter en JSON…", action: action, keyEquivalent: "")
+        normal.target = target
 
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        return try encoder.encode(Export(
-            date: ISO8601DateFormatter().string(from: Date()),
-            ssid: snapshot.ssid,
-            status: snapshot.status,
-            statistics: snapshot.statistics,
-            socketEvents: snapshot.socketEvents
-        ))
+        let full = NSMenuItem(title: "Exporter en JSON, portail compris…",
+                              action: action, keyEquivalent: "")
+        full.target = target
+        full.isAlternate = true
+        full.keyEquivalentModifierMask = .option
+        return [normal, full]
     }
 
     // MARK: - Lecture curatée

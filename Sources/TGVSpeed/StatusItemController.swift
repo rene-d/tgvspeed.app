@@ -281,10 +281,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// Rend le menu Wi-Fi et retient l'instantané, que l'export réécrit tel quel.
     private func show(_ snapshot: WiFiSnapshot) {
         wifiSnapshot = snapshot
-        let export = NSMenuItem(title: "Exporter en JSON…",
-                                action: #selector(exportWiFiJSON), keyEquivalent: "")
-        export.target = self
-        WiFiMenu.populate(wifiSubmenu, with: snapshot, export: export)
+        WiFiMenu.populate(wifiSubmenu, with: snapshot,
+                          export: WiFiMenu.exportItems(target: self,
+                                                       action: #selector(exportWiFiJSON)))
     }
 
     private func ssidHint() -> String? {
@@ -306,22 +305,39 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         NSWorkspace.shared.open(url)
     }
 
-    /// Écrit les documents bruts — statut, qualité, événements Socket.IO — dans un
-    /// fichier, puis le montre dans le Finder.
+    /// Écrit un fichier de diagnostic — mémoire de l'application, endpoints REST,
+    /// événements Socket.IO, empreintes du portail — puis le montre dans le Finder.
+    ///
+    /// ⌥ y ajoute les contenus du portail : libellés, catalogue vidéo, salons de chat.
     ///
     /// Pas de fenêtre d'enregistrement : elle obligerait à activer l'application,
     /// ce qu'un agent de barre de menus ne peut pas faire sans voler le focus.
     @objc private func exportWiFiJSON() {
+        let full = NSEvent.modifierFlags.contains(.option)
+        let inputs = DiagnosticExport.Inputs(
+            ssid: wifiSnapshot.ssid,
+            transport: feed.transport.label,
+            maxSpeed: stats.maxSpeed,
+            averageSpeed: stats.averageSpeed,
+            traveledDistance: stats.traveledDistance,
+            duration: stats.duration,
+            lastRawGPS: lastRawGPS,
+            socketEvents: socketEvents
+        )
         let stamp = DateFormatter()
         stamp.dateFormat = "yyyy-MM-dd-HHmmss"
         let directory = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         let url = directory.appendingPathComponent("TGVSpeed-\(stamp.string(from: Date())).json")
-        do {
-            try WiFiMenu.exportData(wifiSnapshot).write(to: url)
-            NSWorkspace.shared.activateFileViewerSelecting([url])
-        } catch {
-            NSLog("TGVSpeed : export JSON impossible — \(error)")
+
+        Task { [client] in
+            let data = await DiagnosticExport.build(client: client, inputs: inputs, full: full)
+            do {
+                try data.write(to: url)
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            } catch {
+                NSLog("TGVSpeed : export JSON impossible — \(error)")
+            }
         }
     }
 

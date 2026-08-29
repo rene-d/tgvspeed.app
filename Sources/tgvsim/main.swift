@@ -56,6 +56,8 @@ func body(for path: String) -> [String: Any]? {
     case "/train/details": simulator.trainDetails()
     case "/connection/status": simulator.connectionStatus()
     case "/connection/statistics": simulator.connectionStatistics()
+    case "/train/graph": simulator.trainGraph()
+    case "/bar/attendance": simulator.barAttendance()
     default: nil
     }
 }

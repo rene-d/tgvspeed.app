@@ -2,7 +2,7 @@ import Foundation
 
 /// Valeur JSON quelconque : les endpoints `connection/*` ne sont pas documentés,
 /// on les décode donc sans schéma et on les rend en clé/valeur dans le menu.
-enum JSONValue: Codable, Equatable {
+enum JSONValue: Codable, Equatable, Sendable {
     case string(String)
     case number(Double)
     case bool(Bool)

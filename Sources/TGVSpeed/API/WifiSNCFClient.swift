@@ -30,15 +30,28 @@ struct WifiSNCFClient: Sendable {
         return URLSession(configuration: config)
     }()
 
+    /// Les routes lues par le portail, relevées dans son bundle et vérifiées à bord.
+    ///
+    /// Le bundle en expose d'autres — `connection/logout`, `connection/activate/*`,
+    /// `connection/modify`, les jetons — qui écrivent : `logout` coupe la session
+    /// Wi-Fi. Elles n'ont rien à faire ici.
+    ///
+    /// `data_consumption` et `connected_devices` n'existent pas en REST (404) : ce
+    /// sont uniquement des événements Socket.IO. `bar_attendance`, lui, a bien son
+    /// équivalent REST. Répondent 404 également : `connection/registry`,
+    /// `bar/meta.json`, `connections/`.
     enum Endpoint: String {
         case gps = "train/gps"
         case details = "train/details"
+        case graph = "train/graph"
         case connectionStatus = "connection/status"
         case connectionStatistics = "connection/statistics"
-        // `data_consumption` et `connected_devices` n'existent pas en REST (404) :
-        // ce sont uniquement des événements socket.io. Leurs informations sont
-        // de toute façon reprises par `connection/status` et `connection/statistics`.
-
+        case barAttendance = "bar/attendance"
+        // Contenus du portail, sans intérêt pour l'application : repris seulement
+        // par l'export intégral (⌥ sur « Exporter en JSON… »).
+        case mediaWordings = "media/wordings"
+        case mediaVideos = "media/videos"
+        case chatRoom = "chat/room"
     }
 
     /// Racine du serveur, d'où part `/socket.io/` : l'API REST est sous `/router/api`,
@@ -95,6 +108,26 @@ struct WifiSNCFClient: Sendable {
 
     func json(_ endpoint: Endpoint) async throws -> JSONValue {
         try await fetch(JSONValue.self, from: endpoint)
+    }
+
+    /// Lit une ressource sous la racine du serveur, hors de `/router/api` : le
+    /// portail et son handshake Socket.IO vivent un cran plus haut. Renvoie le corps
+    /// et les en-têtes, dont on tire les empreintes de version.
+    func fetchFromRoot(_ path: String) async throws -> (body: Data, headers: [String: String]) {
+        guard let url = URL(string: path, relativeTo: socketRoot) else {
+            throw ClientError.httpStatus(400)
+        }
+        let (data, response) = try await session.data(from: url)
+        guard let http = response as? HTTPURLResponse else { return (data, [:]) }
+        guard (200..<300).contains(http.statusCode) else {
+            throw ClientError.httpStatus(http.statusCode)
+        }
+        let headers = http.allHeaderFields.reduce(into: [String: String]()) { result, pair in
+            if let key = pair.key as? String, let value = pair.value as? String {
+                result[key] = value
+            }
+        }
+        return (data, headers)
     }
 
     enum ClientError: LocalizedError {

@@ -67,7 +67,7 @@ enum MenuDump {
                 status: status,
                 statistics: statistics,
                 socketEvents: socketEvents
-            ), export: NSMenuItem(title: "Exporter en JSON…", action: nil, keyEquivalent: ""))
+            ), export: WiFiMenu.exportItems(target: nil, action: nil))
             print("\nWi-Fi ▸")
             dump(wifiMenu)
             print("\n(\(count(wifiMenu)) lignes)")
@@ -81,12 +81,25 @@ enum MenuDump {
         }
     }
 
+    /// Accumulateur des événements du socket.
+    ///
+    /// Un simple `var` capturé ne suffit pas : `Task.cancel()` ne fait que *demander*
+    /// l'arrêt, si bien que la tâche d'écoute écrit encore pendant que l'appelant lit.
+    /// La table finissait par se corrompre — « Pure virtual function called » au bout
+    /// de quelques exécutions. L'acteur sérialise les accès, et `task.value` attend
+    /// l'arrêt effectif avant la lecture.
+    private actor EventBox {
+        private(set) var events: [String: JSONValue] = [:]
+        func record(_ name: String, _ value: JSONValue) { events[name] = value }
+    }
+
     /// Écoute brièvement le socket pour récupérer les événements sans équivalent REST.
-    private static func collectSocketEvents(client: WifiSNCFClient,
-                                            seconds: Double) async -> [String: JSONValue] {
+    /// Partagée avec le mode `--export`.
+    static func collectSocketEvents(client: WifiSNCFClient,
+                                    seconds: Double) async -> [String: JSONValue] {
         let socket = EngineIOClient(root: client.socketRoot,
                                     namespace: WifiSNCFClient.socketNamespace)
-        var events: [String: JSONValue] = [:]
+        let box = EventBox()
         let deadline = Date().addingTimeInterval(seconds)
 
         let task = Task {
@@ -96,12 +109,13 @@ enum MenuDump {
                       let value = try? JSONDecoder().decode(JSONValue.self, from: payload),
                       value != .null
                 else { continue }
-                events[name] = value
+                await box.record(name, value)
             }
         }
         while Date() < deadline { try? await Task.sleep(for: .milliseconds(100)) }
         task.cancel()
-        return events
+        _ = try? await task.value
+        return await box.events
     }
 
     private static func count(_ menu: NSMenu) -> Int {

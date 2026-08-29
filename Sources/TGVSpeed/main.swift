@@ -25,6 +25,20 @@ if CommandLine.arguments.contains("--dump-menu") {
     exit(0)
 }
 
+// Mode non interactif : écrit le document de diagnostic (le même que l'entrée de
+// menu) dans un fichier, ou sur la sortie standard si aucun chemin n'est donné.
+// `--full` y ajoute les contenus du portail, comme ⌥ dans le menu.
+if CommandLine.arguments.contains("--export") {
+    let index = CommandLine.arguments.firstIndex(of: "--export").map { $0 + 1 }
+    let next = index.flatMap { $0 < CommandLine.arguments.count ? CommandLine.arguments[$0] : nil }
+    let path = next?.hasPrefix("--") == false ? next : nil
+    MainActor.assumeIsolated {
+        DiagnosticExport.run(socketSeconds: 6, path: path,
+                             full: CommandLine.arguments.contains("--full"))
+    }
+    exit(0)
+}
+
 // Le point d'entrée s'exécute sur le thread principal : on peut donc entrer
 // directement dans l'isolation MainActor exigée par AppKit.
 MainActor.assumeIsolated {

@@ -34,7 +34,13 @@ Deux modes non interactifs de l'application, utiles pour diagnostiquer sans capt
 ```shell
 ./TGVSpeed.app/Contents/MacOS/TGVSpeed --dump-menu        # menu complet en texte
 ./TGVSpeed.app/Contents/MacOS/TGVSpeed --socket-dump 25   # écoute le flux Socket.IO 25 s
+./TGVSpeed.app/Contents/MacOS/TGVSpeed --export t.json    # document de diagnostic complet
 ```
+
+`--export` assemble exactement ce que produit *Exporter en JSON…* dans le menu Wi-Fi :
+mémoire de l'application, six endpoints REST, événements Socket.IO, empreintes du
+portail. `--full` y ajoute ses contenus. C'est la trace à joindre quand l'API change —
+elle contient l'adresse IP attribuée par la rame, à anonymiser avant de la publier.
 
 `TGVSPEED_BASE_URL` redirige l'application vers n'importe quelle base d'API :
 
@@ -95,7 +101,10 @@ Ne pas les « corriger » sans nouvelle capture : ce sont des faits, pas des bug
   et `Formatters.kilobitrate`.
 - **`quality` est une note sur 5**, pas un pourcentage.
 - **`connection/data_consumption` et `connection/connected_devices` n'existent pas en REST**
-  (404) : ce sont uniquement des événements Socket.IO.
+  (404) : ce sont uniquement des événements Socket.IO. `bar_attendance`, en revanche,
+  a bien un équivalent REST — `bar/attendance`. Répondent 404 également, malgré leur
+  présence dans le bundle du portail : `connection/registry`, `bar/meta.json`,
+  `connections/`.
 - **Le frontal nginx du portail ne relaie pas l'upgrade websocket.** engine.io répond
   `400 {"code":3}` parce que la requête lui parvient comme un GET ordinaire, alors que
   son propre handshake annonce `upgrades:["websocket"]` — il se croit joignable et ignore
