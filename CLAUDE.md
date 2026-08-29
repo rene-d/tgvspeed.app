@@ -47,6 +47,10 @@ Elle n'est pas documentée et a déjà changé une fois : le champ `carrier`, ut
 la version Python, a disparu. **Ces requêtes ne fonctionnent qu'à bord**, connecté à
 `_SNCF_WIFI_INOUI`.
 
+0. **Relever d'abord les empreintes** (§ *Savoir si l'API a changé* du `README.md`) :
+   l'API n'a pas de numéro de version, mais le hachage des bundles du portail change
+   à chaque redéploiement. Inchangé, il n'y a rien à réanalyser.
+
 1. **Recapturer**, depuis le train :
 
    ```shell

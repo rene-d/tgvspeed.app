@@ -138,3 +138,27 @@ Les endpoints `connection/data_consumption` et `connection/connected_devices` n'
 pas en REST (404) : ce sont uniquement des événements Socket.IO.
 
 Voir `Fixtures/README.md` pour les captures.
+
+### Savoir si l'API a changé
+
+L'API ne porte **aucun numéro de version** : ni endpoint `/version`, ni en-tête, ni champ
+dans les documents. À défaut, trois empreintes se relèvent en une commande et suffisent à
+décider s'il faut tout réanalyser.
+
+```shell
+curl -s https://wifi.sncf/ | grep -oE '/assets/(js|styles)/[0-9a-f]{6}\.[a-z.]+'
+curl -sI https://wifi.sncf/assets/js/281e3d.app.js | grep -i last-modified
+curl -s 'https://wifi.sncf/socket.io/?EIO=4&transport=polling'
+```
+
+Valeurs relevées le 29 août 2026, à bord du TGV INOUI 6124 :
+
+| Empreinte | Valeur | Ce qu'elle signale |
+|---|---|---|
+| bundles du portail | `/assets/js/281e3d.app.js`, `/assets/styles/546c6b.bundle.css` | l'empreinte est un hachage du contenu : elle change à chaque redéploiement du portail |
+| `Last-Modified` des bundles | `Fri, 05 Jun 2026 10:09:10 GMT` | date de ce déploiement |
+| handshake Engine.IO | `EIO=4`, `pingInterval:25000`, `pingTimeout:20000`, `maxPayload:1000000` | version du protocole et cadence des PING |
+
+Un hachage inchangé signifie que le portail — donc le contrat que consomme
+l'application — n'a pas bougé. S'il change, reprendre la procédure de
+recapture décrite dans `CLAUDE.md`.
