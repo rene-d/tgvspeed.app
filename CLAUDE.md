@@ -58,8 +58,7 @@ la version Python, a disparu. **Ces requêtes ne fonctionnent qu'à bord**, conn
 
    Anonymiser les adresses IP du client avant de committer une fixture.
 
-2. **Comparer** aux fixtures existantes (`Fixtures/`) et à `docs/socketio.md`,
-   qui recensent l'état connu de l'API.
+2. **Comparer** aux fixtures existantes (`Fixtures/`), qui recensent l'état connu de l'API.
 
 3. **Adapter les modèles** dans `Sources/TGVSpeed/API/Models.swift`. Garder le décodage
    tolérant : ajouter un champ optionnel plutôt que rendre un champ obligatoire.
@@ -90,9 +89,14 @@ Ne pas les « corriger » sans nouvelle capture : ce sont des faits, pas des bug
 - **`quality` est une note sur 5**, pas un pourcentage.
 - **`connection/data_consumption` et `connection/connected_devices` n'existent pas en REST**
   (404) : ce sont uniquement des événements Socket.IO.
-- **Le transport websocket est refusé par la rame** (HTTP 400, `{"code":3}`), alors que le
-  handshake annonce `upgrades:["websocket"]`. Le long-polling est le seul transport viable.
-  Ne pas retenter l'upgrade sans preuve qu'une rame l'accepte.
+- **Le frontal nginx du portail ne relaie pas l'upgrade websocket.** engine.io répond
+  `400 {"code":3}` parce que la requête lui parvient comme un GET ordinaire, alors que
+  son propre handshake annonce `upgrades:["websocket"]` — il se croit joignable et ignore
+  que nginx ne lui passera jamais l'upgrade. Le portail lui-même s'épingle d'ailleurs en
+  `transports:["polling"]` (voir son bundle, `/assets/js/*.app.js`). Le réseau de bord n'y
+  est pour rien : les websockets sortants aboutissent (101). Le long-polling est donc le
+  seul transport viable ; ne pas retenter l'upgrade sans preuve qu'une rame l'accepte.
+  Vérifié le 29 août 2026 à bord du TGV INOUI 6124.
 - **`trainProgress` renvoie `null`** sur les rames observées.
 
 ### Architecture des données
@@ -187,5 +191,4 @@ Sources/TGVSpeed/
   MenuDump / SocketProbe  modes non interactifs
 Sources/tgvsim/ simulateur : Journey (le trajet), Simulator (cinématique), SocketServer, main (HTTP)
 Fixtures/       captures réelles servant de référence aux modèles
-docs/socketio.md  relevé du protocole Socket.IO à bord
 ```

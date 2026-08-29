@@ -13,5 +13,3 @@ servant de référence pour les modèles `Codable`.
 | `connected_devices.json` | événement Socket.IO `connected_devices` (pas d'équivalent REST) |
 
 L'adresse IP du client a été remplacée par `10.0.0.1` dans `data_consumption.json`.
-
-Le relevé du flux Socket.IO est détaillé dans [`../docs/socketio.md`](../docs/socketio.md).

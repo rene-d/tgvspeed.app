@@ -26,8 +26,8 @@ Le REST ci-dessus sert de **repli automatique** dès que le socket reste muet pl
 8 secondes — traversée de tunnel, perte de couverture — avec reconnexion en backoff.
 Le transport utilisé est indiqué dans le menu *Statut*.
 
-Le transport websocket est refusé par la rame malgré ce qu'annonce le handshake :
-voir [`docs/socketio.md`](docs/socketio.md).
+Le frontal nginx du portail ne relaie pas l'upgrade websocket, malgré ce qu'annonce
+le handshake ; le portail lui-même s'épingle en `transports:["polling"]`.
 
 Hors du train, l'application se met en veille : le sondage passe de 2 s à 20 s,
 le titre se réduit à l'icône et les entrées de menu qui dépendent du réseau sont désactivées.

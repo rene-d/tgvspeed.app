@@ -2,9 +2,10 @@ import Foundation
 
 /// Client Engine.IO v4 / Socket.IO v4 en long-polling.
 ///
-/// Le routeur de bord annonce `upgrades:["websocket"]` mais refuse l'upgrade
-/// (HTTP 400, `{"code":3}`) : le portail lui-même reste en polling. On implémente
-/// donc directement ce transport. Voir `docs/socketio.md`.
+/// Le handshake annonce `upgrades:["websocket"]`, mais le frontal nginx du portail
+/// ne relaie pas l'upgrade : engine.io la reçoit comme un GET ordinaire et répond
+/// `400 {"code":3}`. Le portail lui-même s'épingle en `transports:["polling"]`.
+/// On implémente donc directement ce transport.
 final class EngineIOClient: @unchecked Sendable {
     /// Racine du serveur, sans `/socket.io/`.
     let root: URL
