@@ -155,7 +155,7 @@ shasum -a 256 -c TGVSpeed-1.0.0.dmg.sha256
 ```shell
 make            # liste les cibles disponibles
 make app        # produit TGVSpeed.app
-make install    # copie dans /Applications
+make install    # copie dans ~/Applications
 make universal  # binaire arm64 + x86_64
 ```
 

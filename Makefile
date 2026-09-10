@@ -5,6 +5,7 @@ CONFIG     := release
 BUILD_DIR  := .build/$(CONFIG)
 BUNDLE     := TGVSpeed_TGVSpeed.bundle
 UNIVERSAL_DIR := .build/universal
+INSTALL_DIR ?= $(HOME)/Applications
 CODESIGN_ID ?= -
 
 .PHONY: all help build app run sim demo check check-dist clean install universal dmg
@@ -116,11 +117,12 @@ check-dist: app
 	  if [ $$status -eq 0 ]; then echo "==> ressources trouvées dans l'app empaquetée"; fi; \
 	  exit $$status
 
-## Copie l'application dans /Applications
+## Copie l'application dans ~/Applications
 install: app
-	rm -rf /Applications/$(APP)
-	cp -R $(APP) /Applications/
-	@echo "==> installée dans /Applications"
+	mkdir -p $(INSTALL_DIR)
+	rm -rf $(INSTALL_DIR)/$(APP)
+	cp -R $(APP) $(INSTALL_DIR)/
+	@echo "==> installée dans $(INSTALL_DIR)"
 
 ## Supprime .build et l'app assemblée
 clean:

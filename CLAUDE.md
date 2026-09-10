@@ -24,7 +24,7 @@ make app              # construit TGVSpeed.app
 make sim              # simulateur sur http://localhost:8000
 make demo             # lance l'app branchée sur le simulateur
 make check            # imprime le menu construit, sans interface — le test de référence
-make install          # copie dans /Applications
+make install          # copie dans ~/Applications
 make universal dmg    # binaire arm64 + x86_64, puis l'image disque distribuée
 ```
 

@@ -186,6 +186,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         detailsSignature = signature(of: new)
         details = new
 
+        // Un horaire qui bouge doit reprogrammer l'alarme tout de suite : attendre la
+        // position suivante repousserait le seuil d'une seconde à vingt selon le
+        // transport, et c'est exactement l'instant où un retard vient d'être publié.
+        alarm.evaluate(details: details, stats: stats)
         refreshJourney()
         updateTitle()
     }
