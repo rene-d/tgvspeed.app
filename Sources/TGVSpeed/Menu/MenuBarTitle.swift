@@ -21,4 +21,28 @@ enum MenuBarTitle {
             return "\(speed) · \(Formatters.time(eta))"
         }
     }
+
+    /// En avion, pas d'arrêt ni d'horaire : l'altitude prend leur place.
+    static func planeString(mode: MenuBarDisplay, fix: GPSFix, flight: FlightInfo?) -> String {
+        let speed = Preferences.shared.unit.format(metersPerSecond: fix.speed)
+        switch mode {
+        case .iconOnly:
+            return ""
+        case .speed:
+            return speed
+        case .speedAndETA:
+            if let eta = flight?.estimatedArrival { return "\(speed) · \(Formatters.time(eta))" }
+            fallthrough
+        case .speedAndNextStop:
+            guard let altitude = fix.altitude else { return speed }
+            return "\(speed) · \(altitudeFormatter.string(from: NSNumber(value: altitude.rounded())) ?? "") m"
+        }
+    }
+
+    private static let altitudeFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.maximumFractionDigits = 0
+        return f
+    }()
 }

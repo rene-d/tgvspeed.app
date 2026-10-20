@@ -57,6 +57,15 @@ enum JSONValue: Codable, Equatable, Sendable {
         }
     }
 
+    /// Texte, ou nombre rendu en texte : `type` vaut tantôt "223", tantôt 223.
+    var stringValue: String? {
+        switch self {
+        case .string(let s): s
+        case .number(let n): n == n.rounded() ? String(Int(n)) : String(n)
+        default: nil
+        }
+    }
+
     var boolValue: Bool? {
         switch self {
         case .bool(let b): b

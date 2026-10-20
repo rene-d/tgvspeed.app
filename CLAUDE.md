@@ -129,6 +129,37 @@ Ne pas les « corriger » sans nouvelle capture : ce sont des faits, pas des bug
 Pour tester le repli sans quitter le bureau : `tgvsim --no-socket` renvoie 404 sur
 `/socket.io/`, ce qui force l'application en REST.
 
+## Mode avion (Air France, Starlink)
+
+Sur `AirFranceWIFI`, l'application bascule en mode avion dès que le diagnostic Starlink
+répond : *Voyage* est masqué, *Trajet* devient le vol, l'alarme d'arrivée ne joue pas.
+Retour au train après 30 s sans réponse. Relevé à bord de l'AF1063 le 13 octobre 2026.
+
+- **`wifi.airfrance.com/starlinkrouter/diagnostics`** (`PlaneFeed`) : position et altitude
+  de l'antenne, **sans vitesse ni cap** — déduits de positions successives sur 30 s.
+  Accessible sans protection, comme `starlinkrouter/sandbox-client` qui donne
+  `clientId` et `routerId`.
+- **`freewifi.airfrance.com/ach/api/flightdata?fcid=&cb=1&clientId=&routerId=`**
+  (`FlightPortal`) : numéro de vol, origine, destination, horaires en ms, durées en
+  minutes. `fcid` est un UUID quelconque, gardé dans les préférences. **Derrière
+  l'anti-robot d'Akamai** : sans ses cookies, la requête est coupée (`INTERNAL_ERROR`
+  HTTP/2) — `URLSession` ne passe pas. Une `WKWebView` invisible charge le portail et
+  interroge l'API depuis la page. Ne pas tenter de rejouer les cookies.
+- **Position et vitesse de `flightdata` valent 0** : le portail les remplace lui-même
+  par celles du diagnostic Starlink.
+- **`flightProgressTime` et `timeToDestination` sont figés** d'une requête à l'autre ;
+  l'arrivée estimée est donc `departureTimeUTC + duration`, et le reste se recalcule
+  sur l'horloge du Mac.
+- Le portail ouvre aussi un Socket.IO (`/ws/socket.io`, espace `/connectivity`,
+  événement `flight-data`), non exploité.
+
+```shell
+./TGVSpeed.app/Contents/MacOS/TGVSpeed --flight-probe   # à bord : un flightdata via la vue web
+swift run tgvsim --port 8008
+TGVSPEED_PLANE_URL=http://localhost:8008/starlinkrouter/diagnostics \
+TGVSPEED_FLIGHT_PORTAL=http://localhost:8008/ ./TGVSpeed.app/Contents/MacOS/TGVSpeed
+```
+
 ## Notification d'arrivée
 
 `ArrivalAlarm` prévient avant l'arrivée à la gare cochée dans le sous-menu du trajet.

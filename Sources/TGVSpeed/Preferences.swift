@@ -55,6 +55,7 @@ final class Preferences {
         static let ssidDetection = "ssidDetection"
         static let alarmStop = "alarmStop"
         static let alarmLead = "alarmLead"
+        static let flightClientId = "flightClientId"
     }
 
     var display: MenuBarDisplay {
@@ -106,5 +107,14 @@ final class Preferences {
             return ArrivalAlarm.leadChoices.contains(stored) ? stored : 10
         }
         set { defaults.set(newValue, forKey: Key.alarmLead) }
+    }
+
+    /// Identifiant client du portail Air France (`fcid`, le cookie `ach-fcid`) :
+    /// un UUID tiré au premier usage, gardé ensuite comme le fait le portail.
+    var flightClientId: String {
+        if let stored = defaults.string(forKey: Key.flightClientId) { return stored }
+        let fresh = UUID().uuidString.lowercased()
+        defaults.set(fresh, forKey: Key.flightClientId)
+        return fresh
     }
 }

@@ -7,6 +7,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let client: WifiSNCFClient
     private let feed: TrainFeed
+    private let plane = PlaneFeed()
+    private lazy var portal = FlightPortal(starlinkRouter: plane.url)
+    private var flight: FlightInfo?
+    private var lastFlightDocument: JSONValue?
     private let stats = TripStats()
     private let alarm = ArrivalAlarm()
     private let wifi = WiFiSSID()
@@ -21,6 +25,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var socketEvents: [String: JSONValue] = [:]
     /// Dernier instantané rendu dans le menu Wi-Fi, source de l'export JSON.
     private var wifiSnapshot = WiFiSnapshot()
+    /// À bord d'un avion Air France : le diagnostic Starlink répond. Les données
+    /// du train sont alors ignorées et ses menus masqués.
+    private var planeMode = false
+    private var lastPlaneFix: Date?
+    private var lastPlaneDocument: JSONValue?
 
     // Items conservés pour être mis à jour sans reconstruire tout le menu.
     private let menuVoyage = NSMenuItem(title: "Voyage", action: nil, keyEquivalent: "")
@@ -46,18 +55,50 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         connectFeed()
         alarm.prepare()
         feed.start()
+        plane.start()
     }
 
     private func connectFeed() {
         feed.onGPS = { [weak self] fix, raw in
-            self?.lastRawGPS = raw
-            self?.setGPS(fix, error: nil)
+            guard let self, !self.planeMode else { return }
+            self.lastRawGPS = raw
+            self.setGPS(fix, error: nil)
         }
         feed.onFailure = { [weak self] message in
-            self?.setGPS(nil, error: message)
+            guard let self, !self.planeMode else { return }
+            self.setGPS(nil, error: message)
         }
         feed.onDetails = { [weak self] details in
-            self?.setDetails(details)
+            guard let self, !self.planeMode else { return }
+            self.setDetails(details)
+        }
+        plane.onFix = { [weak self] fix, raw in
+            guard let self else { return }
+            self.lastPlaneFix = Date()
+            self.lastPlaneDocument = try? JSONDecoder().decode(JSONValue.self, from: raw)
+            self.setPlaneMode(true)
+            self.lastRawGPS = raw
+            self.setGPS(fix, error: nil)
+        }
+        plane.onFailure = { [weak self] message in
+            guard let self, self.planeMode else { return }
+            // Une requête perdue ne suffit pas à quitter l'avion : la liaison
+            // satellite a ses trous, comme le train ses tunnels.
+            guard let last = self.lastPlaneFix, Date().timeIntervalSince(last) > 30 else { return }
+            self.setPlaneMode(false)
+            self.setGPS(nil, error: message)
+        }
+        portal.onFlight = { [weak self] info, raw in
+            guard let self, self.planeMode else { return }
+            if let raw { self.lastFlightDocument = raw }
+            if let info { self.flight = info }
+            self.refreshFlight()
+            self.updateTitle()
+        }
+        // Sans détection du SSID, on sonde les deux réseaux ; avec, seul le bon.
+        plane.shouldConnect = { [weak self] in
+            guard let ssid = self?.wifi.current else { return true }
+            return ssid == PlaneFeed.ssid
         }
         feed.onSocketEvent = { [weak self] name, value in
             self?.socketEvents[name] = value
@@ -70,7 +111,44 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
         // Si l'utilisateur a activé la détection du SSID, on évite toute requête
         // quand on sait déjà qu'on n'est pas sur le réseau du train.
-        feed.shouldConnect = { [weak self] in self?.wifi.isOnTrainNetwork != false }
+        feed.shouldConnect = { [weak self] in
+            guard let self else { return false }
+            return !self.planeMode && self.wifi.isOnTrainNetwork != false
+        }
+    }
+
+    private func setPlaneMode(_ value: Bool) {
+        guard planeMode != value else { return }
+        planeMode = value
+        stats.reset()
+        setDetails(nil)
+        menuVoyage.isHidden = value
+        flight = nil
+        lastFlightDocument = nil
+        if value {
+            portal.start()
+        } else {
+            portal.stop()
+        }
+        refreshFlight()
+    }
+
+    /// En avion, le sous-menu du trajet porte le vol : pas d'arrêt à cocher.
+    private func refreshFlight() {
+        guard planeMode else {
+            refreshJourney()
+            return
+        }
+        menuJourney.badge = nil
+        menuJourney.toolTip = nil
+        guard let flight else {
+            menuJourney.title = "Vol"
+            journeySubmenu.removeAllItems()
+            journeySubmenu.addItem(JourneyMenu.disabled("En attente du portail Air France…"))
+            return
+        }
+        menuJourney.title = flight.label
+        FlightMenu.populate(journeySubmenu, with: flight)
     }
 
     // MARK: - Menu
@@ -125,13 +203,13 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         guard menu === statusItem.menu else { return }
         menuVoyage.isEnabled = isOnline
         menuCarte.isEnabled = isOnline
-        menuJourney.isEnabled = details != nil
+        menuJourney.isEnabled = planeMode || details != nil
         // L'utilisateur a pu changer d'avis dans les Réglages Système depuis la
         // dernière ouverture : une alarme muette doit cesser de l'être sans relance.
         alarm.refreshAuthorization()
         // Les horaires estimés et les grisés bougent en continu : on rafraîchit
         // à l'ouverture plutôt que d'attendre un changement de trajet.
-        refreshJourney()
+        refreshFlight()
         StatsMenu.populate(statsSubmenu, stats: stats, details: details)
         buildDisplayMenu()
         refreshWiFi()
@@ -196,6 +274,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     /// Reconstruit le sous-menu des arrêts : coches, grisés et badges de retard.
     private func refreshJourney() {
+        guard !planeMode else { return }
         guard let details else {
             menuJourney.title = "Trajet"
             menuJourney.badge = nil
@@ -248,12 +327,15 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
 
         button.appearsDisabled = false
-        button.toolTip = details.map { "\($0.label) — \($0.destination?.label ?? "")" }
+        button.toolTip = planeMode ? (flight.map { "Air France \($0.label)" } ?? "Air France — Starlink")
+            : details.map { "\($0.label) — \($0.destination?.label ?? "")" }
         button.attributedTitle = attributed(title(for: gps))
     }
 
     private func title(for gps: GPSFix) -> String {
-        MenuBarTitle.string(mode: prefs.display, fix: gps, details: details, stats: stats)
+        planeMode
+            ? MenuBarTitle.planeString(mode: prefs.display, fix: gps, flight: flight)
+            : MenuBarTitle.string(mode: prefs.display, fix: gps, details: details, stats: stats)
     }
 
     /// Chiffres à chasse fixe : sinon le titre tremble à chaque rafraîchissement.
@@ -266,6 +348,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     // MARK: - Wi-Fi
 
     private func refreshWiFi() {
+        if planeMode {
+            // Le diagnostic Starlink est tout ce que le routeur expose : il s'affiche
+            // tel quel dans les détails techniques.
+            show(WiFiSnapshot(ssid: wifi.current, ssidHint: ssidHint(),
+                              socketEvents: ["starlink": lastPlaneDocument, "flightdata": lastFlightDocument]
+                                .compactMapValues { $0 }))
+            return
+        }
         show(WiFiSnapshot(
             ssid: wifi.current,
             ssidHint: ssidHint(),
@@ -365,8 +455,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             alert.informativeText = [
                 lastRawGPS.flatMap(prettyJSON) ?? "—",
                 "",
-                "source   : \(feed.transport.label)",
-                "endpoint : \(client.baseURL.absoluteString)",
+                "source   : \(planeMode ? "Starlink (REST)" : feed.transport.label)",
+                "endpoint : \(planeMode ? plane.url.absoluteString : client.baseURL.absoluteString)",
             ].joined(separator: "\n")
             alert.icon = Assets.gps
         } else {

@@ -149,6 +149,68 @@ final class Simulator: @unchecked Sendable {
         ]
     }
 
+    /// Schéma de `wifi.airfrance.com/starlinkrouter/diagnostics`, relevé à bord le
+    /// 13 octobre 2026 (`Fixtures/starlink_diagnostics.json`). Pas de vitesse :
+    /// l'application la déduit des positions successives.
+    func starlinkDiagnostics() -> [String: Any] {
+        let s = state()
+        return [
+            "dish": [
+                "alerts": [String](),
+                "hardwareSelfTest": "passed",
+                "disablementCode": "okay",
+                "id": "ut00000000-00000000-00000000",
+                "lastUpdateRelativeNs": 1_500_000_000,
+                "location": [
+                    "latitude": s.latitude,
+                    "longitude": s.longitude,
+                    "altitudeMeters": 11_300 + 40 * sin(s.longitude * 3),
+                ],
+                "softwareVersion": "2026.07.14.mr82236.1.51103",
+                "utcOffset": 3600,
+            ] as [String: Any],
+            "router": ["alerts": [String](), "sandboxDisabled": false] as [String: Any],
+        ]
+    }
+
+    /// `starlinkrouter/sandbox-client` : identifiants que le portail ajoute à ses requêtes.
+    func starlinkSandboxClient() -> [String: Any] {
+        ["routerId": "Router-01000000000000000000000", "sandboxId": 0,
+         "clientId": String(repeating: "0", count: 64), "sandboxed": false]
+    }
+
+    /// `freewifi.airfrance.com/ach/api/flightdata`, relevé à bord de l'AF1063
+    /// (`Fixtures/flightdata.json`) : le trajet simulé devient un vol, avec une
+    /// arrivée prévue un quart d'heure avant l'estimée. Position et vitesse à 0,
+    /// comme à bord : elles viennent du diagnostic Starlink.
+    func flightData() -> [String: Any] {
+        let total = Journey.stops.last?.offsetMinutes ?? 0
+        let ms = { (date: Date) in Int(date.timeIntervalSince1970 * 1000) }
+        let elapsed = max(0, min(total, elapsedMinutes))
+        return [
+            "aircraft": ["tail": "FHPNZ", "type": "223", "altitude": 0, "latitude": 0,
+                         "longitude": 0, "horizontalVelocity": 0] as [String: Any],
+            "flight": [
+                "id": "00000000000000000000000000000000",
+                "number": "AF\(Journey.number)",
+                "phase": elapsed < total ? "AIRBORNE" : "LANDED",
+                "originIATA": "BOD",
+                "destinationIATA": "ORY",
+                "originUTCOffset": 120,
+                "destinationUTCOffset": 120,
+                "departureTimeUTC": ms(date(atMinute: 0)),
+                "arrivalTimeUTC": ms(date(atMinute: total - 15)),
+                "currentTimeUTC": ms(Date()),
+                "duration": Int(total),
+                "flightProgressTime": Int(elapsed),
+                "timeToDestination": Int(total - elapsed),
+                "haul": "MEDIUM",
+            ] as [String: Any],
+            "connectivity": ["available": true],
+            "arrivalInformation": [String: Any](),
+        ]
+    }
+
     /// Reproduit le schéma réellement observé à bord : pas de champ `carrier`,
     /// `delay` numérique, coordonnées par arrêt, et surtout un bloc `progress`
     /// qui décrit le tronçon *partant* de l'arrêt — absent sur le terminus.

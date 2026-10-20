@@ -190,6 +190,8 @@ enum WiFiMenu {
         case "connected_devices": "Appareils"
         case "bar_attendance": "Bar"
         case "train_number": "Rame"
+        case "starlink": "Starlink"
+        case "flightdata": "Vol"
         default: humanize(event)
         }
     }
@@ -207,7 +209,7 @@ enum WiFiMenu {
         }
 
         let item = JourneyMenu.disabled(title)
-        if let ssid = snapshot.ssid, ssid == WiFiSSID.expectedSSID {
+        if let ssid = snapshot.ssid, [WiFiSSID.expectedSSID, PlaneFeed.ssid].contains(ssid) {
             item.badge = NSMenuItemBadge(string: "à bord")
         }
         return item

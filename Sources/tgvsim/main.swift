@@ -35,6 +35,9 @@ if CommandLine.arguments.contains("--help") {
     Routes servies :
       /train/gps  /train/details  /train/graph
       /connection/status  /connection/statistics  /bar/attendance
+      /starlinkrouter/diagnostics  /starlinkrouter/sandbox-client
+      /  /ach/api/flightdata  (avion : TGVSPEED_PLANE_URL=…/starlinkrouter/diagnostics,
+                               TGVSPEED_FLIGHT_PORTAL=http://localhost:<port>/)
       /socket.io/  (Engine.IO v4 en long-polling, namespace /router/api/pepita)
     """)
     exit(0)
@@ -65,6 +68,10 @@ func body(for path: String) -> [String: Any]? {
     case "/connection/statistics": simulator.connectionStatistics()
     case "/train/graph": simulator.trainGraph()
     case "/bar/attendance": simulator.barAttendance()
+    // Diagnostic de l'antenne Starlink des avions Air France, même trajet en altitude.
+    case "/starlinkrouter/diagnostics": simulator.starlinkDiagnostics()
+    case "/starlinkrouter/sandbox-client": simulator.starlinkSandboxClient()
+    case "/ach/api/flightdata": simulator.flightData()
     default: nil
     }
 }
@@ -135,6 +142,15 @@ func respond(to request: Request, on connection: NWConnection) {
             log("\(request.method) /socket.io/", bytes: payload.count)
             send(httpResponse(status: "200 OK", payload: Data(payload.utf8), contentType: "text/plain"))
         }
+        return
+    }
+
+    // Page du portail Air France : la vue web de l'application la charge avant
+    // d'interroger /ach/api/flightdata depuis la même origine.
+    if request.path == "/" {
+        log("/", bytes: 0)
+        send(httpResponse(status: "200 OK", payload: Data("<!doctype html><title>tgvsim</title>".utf8),
+                          contentType: "text/html"))
         return
     }
 

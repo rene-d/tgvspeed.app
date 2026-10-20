@@ -39,6 +39,33 @@ if CommandLine.arguments.contains("--export") {
     exit(0)
 }
 
+// Mode non interactif : charge le portail Air France dans la vue web invisible
+// et imprime le premier document `flightdata` obtenu. À lancer à bord.
+if CommandLine.arguments.contains("--flight-probe") {
+    MainActor.assumeIsolated {
+        _ = NSApplication.shared
+        let portal = FlightPortal(starlinkRouter: PlaneFeed().url)
+        var done = false
+        portal.onFlight = { info, raw in
+            if let raw, let data = try? JSONEncoder().encode(raw) {
+                print(String(decoding: data, as: UTF8.self))
+            }
+            print(info.map { "vol : \($0.label), arrivée \($0.estimatedArrival.map(Formatters.time) ?? "?")" }
+                ?? "flightdata illisible")
+            fflush(stdout)
+            done = info != nil
+        }
+        print("portail : \(portal.portal.absoluteString)")
+        portal.start()
+        let deadline = Date().addingTimeInterval(60)
+        while !done, Date() < deadline {
+            RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.1))
+        }
+        if !done { print("aucune réponse en 60 s") }
+        exit(done ? 0 : 1)
+    }
+}
+
 // Le point d'entrée s'exécute sur le thread principal : on peut donc entrer
 // directement dans l'isolation MainActor exigée par AppKit.
 MainActor.assumeIsolated {

@@ -1,0 +1,22 @@
+{
+    "dish": {
+        "alerts": [
+            "dishIsHeating"
+        ],
+        "hardwareSelfTest": "failed",
+        "disablementCode": "okay",
+        "id": "ut01000000-00000000-00000000",
+        "lastUpdateRelativeNs": 4493666123,
+        "location": {
+            "latitude": 51.91169818774886,
+            "longitude": 7.982085087688816,
+            "altitudeMeters": 11316.894547338397
+        },
+        "softwareVersion": "2026.07.14.mr82236.1.51103",
+        "utcOffset": 3600
+    },
+    "router": {
+        "alerts": [],
+        "sandboxDisabled": false
+    }
+}

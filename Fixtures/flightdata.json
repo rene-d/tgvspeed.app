@@ -1,0 +1,51 @@
+{
+    "aircraft": {
+        "tail": "FHPNZ",
+        "type": "223",
+        "altitude": 0,
+        "latitude": 0,
+        "longitude": 0,
+        "horizontalVelocity": 0
+    },
+    "flight": {
+        "id": "4e0d6a7922dec9b6b88cd57ead2671ae",
+        "number": "AF1063",
+        "phase": "AIRBORNE",
+        "originIATA": "ARN",
+        "destinationIATA": "CDG",
+        "originUTCOffset": 120,
+        "destinationUTCOffset": 120,
+        "departureTimeUTC": 1791908280000,
+        "arrivalTimeUTC": 1791917040000,
+        "currentTimeUTC": 1791915687798,
+        "duration": 163,
+        "flightProgressTime": 125,
+        "timeToDestination": 38,
+        "haul": "MEDIUM"
+    },
+    "connectivity": {
+        "available": true
+    },
+    "services": {
+        "passengerInternet": {
+            "healthy": true,
+            "features": {
+                "internetConnectivity": {
+                    "status": "operational"
+                },
+                "sessionManagement": {
+                    "status": "operational"
+                }
+            }
+        },
+        "environment": "ground",
+        "payloads": [
+            "flightstatus",
+            "aal_config",
+            "informational-messages",
+            "advertisement",
+            "flighttrajectory"
+        ]
+    },
+    "arrivalInformation": {}
+}
